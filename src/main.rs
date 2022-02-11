@@ -26,8 +26,9 @@
 mod config;
 
 use axum::{routing::get, Router};
+use tower_http::trace::TraceLayer;
 
-use tracing::{info};
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,7 +39,8 @@ async fn main() -> anyhow::Result<()> {
     info!("Binding service to {}", config.bind_address);
 
     let app = Router::new()
-        .route("/", get(|| async { "OK" }));
+        .route("/", get(|| async { "OK" }))
+        .layer(TraceLayer::new_for_http());
 
     axum::Server::bind(&config.bind_address.parse()?)
         .serve(app.into_make_service())
