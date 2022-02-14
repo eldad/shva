@@ -43,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/", get(http_methods::default))
+        .route("/error", get(http_methods::error))
         .layer(tracing_layer);
 
     axum::Server::bind(&config.bind_address.parse()?)
