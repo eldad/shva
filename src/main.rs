@@ -30,7 +30,10 @@ mod db;
 mod http_methods;
 
 use axum::{routing::get, AddExtensionLayer, Router};
-use tower_http::trace::TraceLayer;
+use tower_http::{
+    trace::TraceLayer,
+    classify::StatusInRangeAsFailures,
+};
 
 use tokio::signal;
 use tracing::{debug, error, info};
@@ -50,7 +53,9 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
         .layer(AddExtensionLayer::new(db_pool))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new(
+            StatusInRangeAsFailures::new(400..=599).into_make_classifier()
+        ));
 
     let bind_address = &config.service.bind_address;
 
