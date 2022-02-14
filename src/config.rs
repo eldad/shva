@@ -27,7 +27,6 @@ use anyhow::Result;
 
 use serde::Deserialize;
 use std::fs;
-use std::time::Duration;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -43,7 +42,7 @@ pub struct ServiceConfig {
 #[derive(Deserialize, Debug)]
 pub struct DatabaseConfig {
     pub postgres_connection_string: String,
-    pub connection_timeout: Option<Duration>,
+    pub connection_timeout_secs: Option<u64>,
 }
 
 impl Config {

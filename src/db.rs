@@ -25,6 +25,8 @@
 
 use crate::config::DatabaseConfig;
 
+use std::time::Duration;
+
 use tracing::instrument;
 
 use bb8::Pool;
@@ -36,9 +38,17 @@ use tracing::info;
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
 pub async fn setup_pool(database_config: &DatabaseConfig) -> anyhow::Result<ConnectionPool> {
-    let manager =
-        PostgresConnectionManager::new_from_stringlike(&database_config.postgres_connection_string, NoTls)?;
-    let pool: ConnectionPool = Pool::builder().build(manager).await?;
+    let manager = PostgresConnectionManager::new_from_stringlike(
+        &database_config.postgres_connection_string,
+        NoTls,
+    )?;
+
+    let mut pool_builder = Pool::builder();
+    if let Some(connection_timeout) = database_config.connection_timeout_secs {
+        pool_builder = pool_builder.connection_timeout(Duration::from_secs(connection_timeout));
+    }
+
+    let pool: ConnectionPool = pool_builder.build(manager).await?;
 
     info!("Startup check: pinging database");
     crate::db::ping(pool.clone()).await?;
@@ -53,7 +63,11 @@ pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {
     let row = conn.query_one(query_string, &[]).await?;
     let row_result: i32 = row.try_get(0)?;
     if row_result != 1 {
-        return Err(anyhow::anyhow!("database ping failed due to unexpected result to query_string `{}`: {}", query_string, row_result));
+        return Err(anyhow::anyhow!(
+            "database ping failed due to unexpected result to query_string `{}`: {}",
+            query_string,
+            row_result
+        ));
     }
     Ok(())
 }
