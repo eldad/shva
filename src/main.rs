@@ -23,6 +23,7 @@
  *
  */
 
+mod apptracing;
 mod apperror;
 mod config;
 mod db;
@@ -40,35 +41,6 @@ use tokio_postgres::NoTls;
 use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
-
-fn setup_tracing() -> anyhow::Result<()> {
-    use tracing_subscriber::prelude::*;
-    use tracing_subscriber::Registry;
-    use tracing_subscriber::fmt::format::FmtSpan;
-    use tracing_subscriber::fmt;
-
-    opentelemetry::global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
-
-    let jaeger_tracer = opentelemetry_jaeger::new_pipeline()
-        .with_service_name(SERVICE_NAME)
-        .install_simple()?;
-
-    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(jaeger_tracer);
-
-    let log_fmt_layer = fmt::layer()
-        .with_span_events(FmtSpan::CLOSE);
-
-    let env_filter = tracing_subscriber::filter::EnvFilter::from_default_env();
-
-    let subscriber = Registry::default()
-        .with(env_filter)
-        .with(log_fmt_layer)
-        .with(telemetry_layer);
-
-    tracing::subscriber::set_global_default(subscriber)?;
-
-    Ok(())
-}
 
 async fn startup(config: &Config) -> anyhow::Result<()> {
     let manager =
@@ -97,7 +69,7 @@ async fn startup(config: &Config) -> anyhow::Result<()> {
 async fn main() -> anyhow::Result<()> {
     let config = Config::read_default()?;
 
-    setup_tracing()?;
+    crate::apptracing::setup_tracing(SERVICE_NAME)?;
 
     let result = startup(&config).await;
 
