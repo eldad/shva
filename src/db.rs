@@ -58,15 +58,18 @@ pub async fn setup_pool(database_config: &DatabaseConfig) -> anyhow::Result<Conn
 
 #[instrument(skip_all)]
 pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {
-    let query_string = "SELECT 2";
+    let query_string = "SELECT 1";
+    let expected_result = 1;
+
     let conn = pool.get().await?;
     let row = conn.query_one(query_string, &[]).await?;
     let row_result: i32 = row.try_get(0)?;
-    if row_result != 1 {
+    if row_result != expected_result {
         return Err(anyhow::anyhow!(
-            "database ping failed due to unexpected result to query_string `{}`: {}",
+            "database ping failed due to unexpected result to query_string `{}`: got {}, wanted {}",
             query_string,
-            row_result
+            row_result,
+            expected_result,
         ));
     }
     Ok(())
