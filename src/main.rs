@@ -46,9 +46,8 @@ async fn main() -> anyhow::Result<()> {
     let tracing_layer = TraceLayer::new_for_http();
 
     let manager =
-        PostgresConnectionManager::new_from_stringlike(config.postgres_connection_string, NoTls)
-            .unwrap();
-    let pool = Pool::builder().build(manager).await.unwrap();
+        PostgresConnectionManager::new_from_stringlike(config.postgres_connection_string, NoTls)?;
+    let pool = Pool::builder().build(manager).await?;
 
     info!("Startup check: pinging database");
     crate::db::ping(pool.clone()).await?;
