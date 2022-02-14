@@ -28,6 +28,8 @@ use crate::config::DatabaseConfig;
 use std::time::Duration;
 
 use tracing::instrument;
+use tracing::event;
+use tracing::Level;
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
@@ -76,6 +78,7 @@ pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[instrument(skip_all)]
 pub async fn simulate_query_short(pool: ConnectionPool) -> anyhow::Result<()> {
     const MINIMUM_DURATION: Duration = Duration::from_secs(1);
     const MAXIMUM_DURATION_MILLIS: u16 = 1_000;
@@ -88,6 +91,7 @@ pub async fn simulate_query_short(pool: ConnectionPool) -> anyhow::Result<()> {
 }
 
 
+#[instrument(skip_all)]
 pub async fn simulate_query_long(pool: ConnectionPool) -> anyhow::Result<()> {
     const MINIMUM_DURATION: Duration = Duration::from_secs(5);
     const MAXIMUM_DURATION_MILLIS: u16 = 10_000;
@@ -95,6 +99,7 @@ pub async fn simulate_query_long(pool: ConnectionPool) -> anyhow::Result<()> {
     let random_millis = rand::random::<u16>() % MAXIMUM_DURATION_MILLIS;
 
     let random_duration = MINIMUM_DURATION + Duration::from_millis(random_millis as u64);
+
     pg_sleep(pool, random_duration).await?;
     Ok(())
 }
@@ -102,6 +107,8 @@ pub async fn simulate_query_long(pool: ConnectionPool) -> anyhow::Result<()> {
 #[instrument(skip_all)]
 async fn pg_sleep(pool: ConnectionPool, duration: Duration) -> anyhow::Result<()> {
     let conn = pool.get().await?;
+
+    event!(Level::INFO, "will sleep {:?}", duration);
 
     let query_string = "SELECT pg_sleep($1)";
     let duration_secs = duration.as_secs_f64();
