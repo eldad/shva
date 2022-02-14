@@ -1,4 +1,4 @@
-.PHONY: run debug test
+.PHONY: run debug test run_optimized
 
 export RUST_LOG := shva=info
 
@@ -19,3 +19,6 @@ test:
 
 	$(CURL) $(SERVICE_BASE_URL)/query/short
 	$(CURL) $(SERVICE_BASE_URL)/query/long
+
+run_optimized:
+	cargo run --release
