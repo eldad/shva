@@ -47,6 +47,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/random_error", get(http_methods::random_error))
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
+        .route("/dbping", get(http_methods::database_ping))
         .layer(AddExtensionLayer::new(db_pool))
         .layer(TraceLayer::new_for_http());
 
