@@ -5,16 +5,19 @@ edition = "2021"
 authors = ["Eldad Zack <eldad@fogrefinery.com>"]
 
 [dependencies]
+# Infra
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5.8"
 anyhow = "1.0.53"
 tracing = "0.1.30"
 tracing-subscriber = "0.3.8"
 
+# Tokio to Axum and all that's in between.
 tokio = { version = "1", features = ["full"] }
 axum = "0.4.5"
-
-# Tower middleware
 tower = "0.4.11"
 tower-http = { version = "0.2.2", features = ["trace"] }
 hyper = "0.14.17"
+
+## Functionality
+rand = "0.8.5"

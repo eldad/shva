@@ -35,6 +35,8 @@ pub enum AppError {
     Unlucky,
     Unforseen,
     TooLittleTooLate,
+    Oops,
+    ShouldNeverHappen,
 }
 
 impl IntoResponse for AppError {
@@ -42,8 +44,16 @@ impl IntoResponse for AppError {
         let body = format!("{:?}", self);
         let boxed_body = body::boxed(body::Full::from(body));
 
+        let status_code = match self {
+            AppError::Doomed => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Unlucky => StatusCode::MISDIRECTED_REQUEST,
+            AppError::TooLittleTooLate => StatusCode::EXPECTATION_FAILED,
+            AppError::Oops => StatusCode::IM_A_TEAPOT,
+            _ => StatusCode::NOT_IMPLEMENTED,
+        };
+
         Response::builder()
-            .status(StatusCode::IM_A_TEAPOT)
+            .status(status_code)
             .body(boxed_body)
             .unwrap()
     }

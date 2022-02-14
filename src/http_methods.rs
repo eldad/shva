@@ -23,6 +23,8 @@
  *
  */
 
+use rand;
+
 use crate::apperror::AppError;
 
 pub async fn default() -> String {
@@ -31,4 +33,18 @@ pub async fn default() -> String {
 
 pub async fn error() -> Result<String, AppError> {
     Err(AppError::Doomed)
+}
+
+pub async fn random_error() -> Result<String, AppError> {
+    let r: u8 = rand::random();
+    let err = match r % 5 {
+        0 => AppError::Unforseen,
+        1 => AppError::Unlucky,
+        2 => AppError::Doomed,
+        3 => AppError::TooLittleTooLate,
+        4 => AppError::Oops,
+        _ => AppError::ShouldNeverHappen,
+    };
+
+    Err(err)
 }
