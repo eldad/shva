@@ -27,6 +27,9 @@ use tracing::instrument;
 use tracing::event;
 use tracing::Level;
 
+use axum::extract::Extension;
+use crate::db::ConnectionPool;
+
 use rand;
 
 use crate::apperror::AppError;
@@ -55,4 +58,12 @@ fn generate_random_error() -> AppError {
 pub async fn random_error() -> Result<String, AppError> {
     event!(Level::INFO, "generating random error");
     Err(generate_random_error())
+}
+
+pub async fn simulate_query_short(Extension(pool): Extension<ConnectionPool>) -> Result<(), AppError> {
+    Ok(crate::db::simulate_query_short(pool).await?)
+}
+
+pub async fn simulate_query_long(Extension(pool): Extension<ConnectionPool>) -> Result<(), AppError> {
+    Ok(crate::db::simulate_query_long(pool).await?)
 }
