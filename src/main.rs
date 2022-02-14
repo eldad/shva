@@ -32,7 +32,7 @@ mod http_methods;
 use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
-use tracing::info;
+use tracing::{info, error};
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
@@ -42,7 +42,7 @@ use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 
-async fn startup(config: &Config) -> anyhow::Result<()> {
+async fn service(config: &Config) -> anyhow::Result<()> {
     let manager =
         PostgresConnectionManager::new_from_stringlike(&config.postgres_connection_string, NoTls)?;
     let pool = Pool::builder().build(manager).await?;
@@ -71,9 +71,16 @@ async fn main() -> anyhow::Result<()> {
 
     crate::apptracing::setup_tracing(SERVICE_NAME)?;
 
-    let result = startup(&config).await;
+    let result = service(&config).await;
+
+    match &result {
+        Ok(_) => info!("Normal service shutdown"),
+        Err(e) => error!("Main service loop error: {}", e),
+    }
 
     opentelemetry::global::shutdown_tracer_provider();
+
+    info!("DONE shutdown_tracer_provider");
 
     result
 }
