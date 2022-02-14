@@ -37,6 +37,7 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct ServiceConfig {
     pub bind_address: String,
+    pub max_concurrent_connections: Option<usize>,
 }
 
 #[derive(Deserialize, Debug)]

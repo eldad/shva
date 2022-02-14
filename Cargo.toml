@@ -18,7 +18,7 @@ tracing-opentelemetry = "0.17.1"
 # Tokio to Axum and all that's in between.
 tokio = { version = "1", features = ["full"] }
 axum = "0.4.8"
-tower = "0.4.11"
+tower = { version = "0.4.11", features = ["limit"] }
 tower-http = { version = "0.2.2", features = ["trace"] }
 hyper = "0.14.17"
 

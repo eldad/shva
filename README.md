@@ -13,6 +13,13 @@ Prometheus Metrics are available in the `/metrics` endpoint.
 Since the `metrics-exporter-prometheus` crate currently does not provider any callback mechanism, I opted out of using the `http-listener`.
 By rendering inside axum, one can use the tower `Extension` facility to track the state directly before a scrape call.
 
+## TODO
+
+- [ ] compression/decompression
+- [ ] rate limiting
+- [ ] concurrent request limiting
+- [ ] load shedding
+
 ## Performance measurements
 
 Measured with [hey](https://github.com/rakyll/hey) on my personal machine (AMD Ryzen 5 5600H).

@@ -39,12 +39,15 @@ use tower_http::{
     classify::StatusInRangeAsFailures,
 };
 
+use tower::limit::concurrency::GlobalConcurrencyLimitLayer;
+
 use tokio::signal;
 use tracing::{debug, error, info};
 
 use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
+const DEFAULT_MAX_CONCURRENT_CONNECTIONS: usize = 3;
 
 async fn service(config: &Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
@@ -58,6 +61,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
         .route("/metrics", get(appmetrics::scrape))
+        .layer(GlobalConcurrencyLimitLayer::new(config.service.max_concurrent_connections.unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS)))
         .layer(Extension(db_pool))
         .layer(Extension(prometheus_handle))
         .route_layer(middleware::from_fn(appmetrics::track_latency))
