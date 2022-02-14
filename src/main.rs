@@ -25,10 +25,16 @@
 
 mod config;
 
+use std::time::Duration;
+
 use axum::{routing::get, Router};
 use tower_http::trace::TraceLayer;
 
-use tracing::info;
+use axum::response::Response;
+use axum::http::Request;
+use hyper::body::Body;
+
+use tracing::{info, info_span, Span};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,9 +44,23 @@ async fn main() -> anyhow::Result<()> {
 
     info!("Binding service to {}", config.bind_address);
 
+    let tracing_layer = TraceLayer::new_for_http()
+        .make_span_with(|request: &Request<Body>| {
+            info_span!(
+                "request",
+                method = %request.method(),
+                uri = %request.uri(),
+                status_code = tracing::field::Empty,
+            )
+        })
+        .on_response(|response: &Response, _latency: Duration, span: &Span| {
+            span.record("status_code", &tracing::field::display(response.status()));
+        });
+
+
     let app = Router::new()
         .route("/", get(|| async { "OK" }))
-        .layer(TraceLayer::new_for_http());
+        .layer(tracing_layer);
 
     axum::Server::bind(&config.bind_address.parse()?)
         .serve(app.into_make_service())
