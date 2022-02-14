@@ -23,6 +23,8 @@
  *
  */
 
+use crate::config::DatabaseConfig;
+
 use tracing::instrument;
 
 use bb8::Pool;
@@ -33,9 +35,9 @@ use tracing::info;
 
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
-pub async fn setup_pool(postgres_connection_string: &str) -> anyhow::Result<ConnectionPool> {
+pub async fn setup_pool(database_config: &DatabaseConfig) -> anyhow::Result<ConnectionPool> {
     let manager =
-        PostgresConnectionManager::new_from_stringlike(postgres_connection_string, NoTls)?;
+        PostgresConnectionManager::new_from_stringlike(&database_config.postgres_connection_string, NoTls)?;
     let pool: ConnectionPool = Pool::builder().build(manager).await?;
 
     info!("Startup check: pinging database");

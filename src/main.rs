@@ -32,14 +32,14 @@ mod http_methods;
 use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
-use tracing::{info, error};
+use tracing::{info, error, debug};
 
 use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 
 async fn service(config: &Config) -> anyhow::Result<()> {
-    let db_pool = crate::db::setup_pool(&config.postgres_connection_string).await?;
+    let db_pool = crate::db::setup_pool(&config.database).await?;
 
     let app = Router::new()
         .route("/", get(http_methods::default))
@@ -48,8 +48,10 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .layer(AddExtensionLayer::new(db_pool))
         .layer(TraceLayer::new_for_http());
 
-    info!("Binding service to {}", config.bind_address);
-    axum::Server::bind(&config.bind_address.parse()?)
+    let bind_address = &config.service.bind_address;
+
+    info!("Binding service to {}", bind_address);
+    axum::Server::bind(&bind_address.parse()?)
         .serve(app.into_make_service())
         .await?;
 
@@ -61,6 +63,8 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::read_default()?;
 
     crate::apptracing::setup_tracing(SERVICE_NAME)?;
+
+    debug!("config = {:#?}", config);
 
     let result = service(&config).await;
 
