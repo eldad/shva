@@ -23,8 +23,8 @@
  *
  */
 
-mod apptracing;
 mod apperror;
+mod apptracing;
 mod config;
 mod db;
 mod http_methods;
@@ -32,7 +32,8 @@ mod http_methods;
 use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
-use tracing::{info, error, debug};
+use tokio::signal;
+use tracing::{debug, error, info};
 
 use crate::config::Config;
 
@@ -56,6 +57,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
     info!("Binding service to {}", bind_address);
     axum::Server::bind(&bind_address.parse()?)
         .serve(app.into_make_service())
+        .with_graceful_shutdown(shutdown_signal())
         .await?;
 
     Ok(())
@@ -81,4 +83,30 @@ async fn main() -> anyhow::Result<()> {
     info!("DONE shutdown_tracer_provider");
 
     result
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install CTRL-C handler"); // TODO: remove expect?
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    let signal = tokio::select! {
+        _ = ctrl_c => "CTRL-C",
+        _ = terminate => "SIGTERM",
+    };
+
+    info!("Starting graceful shutdown: received {}", signal);
 }
