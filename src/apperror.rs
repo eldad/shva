@@ -23,12 +23,28 @@
  *
  */
 
-use crate::apperror::AppError;
+use axum::{
+    body,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 
-pub async fn default() -> String {
-    "OK".to_string()
+#[derive(Debug)]
+pub enum AppError {
+    Doomed,
+    Unlucky,
+    Unforseen,
+    TooLittleTooLate,
 }
 
-pub async fn error() -> Result<String, AppError> {
-    Err(AppError::Doomed)
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        let body = format!("{:?}", self);
+        let boxed_body = body::boxed(body::Full::from(body));
+
+        Response::builder()
+            .status(StatusCode::IM_A_TEAPOT)
+            .body(boxed_body)
+            .unwrap()
+    }
 }

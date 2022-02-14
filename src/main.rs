@@ -24,6 +24,7 @@
  */
 
 mod config;
+mod apperror;
 mod http_methods;
 
 use axum::{routing::get, Router};
