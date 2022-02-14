@@ -23,31 +23,6 @@
  *
  */
 
-mod config;
-mod http_methods;
-
-use axum::{routing::get, Router};
-use tower_http::trace::TraceLayer;
-
-use tracing::info;
-
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
-
-    let config = crate::config::Config::read_default()?;
-
-    info!("Binding service to {}", config.bind_address);
-
-    let tracing_layer = TraceLayer::new_for_http();
-
-    let app = Router::new()
-        .route("/", get(http_methods::default))
-        .layer(tracing_layer);
-
-    axum::Server::bind(&config.bind_address.parse()?)
-        .serve(app.into_make_service())
-        .await?;
-
-    Ok(())
+pub async fn default() -> String {
+    "OK".to_string()
 }
