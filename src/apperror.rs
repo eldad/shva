@@ -23,6 +23,8 @@
  *
  */
 
+use tracing::error;
+
 use axum::{
     body,
     http::StatusCode,
@@ -37,20 +39,29 @@ pub enum AppError {
     TooLittleTooLate,
     Oops,
     ShouldNeverHappen,
+    GenericError(String, String),
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let body = format!("{:?}", self);
-        let boxed_body = body::boxed(body::Full::from(body));
-
-        let status_code = match self {
+        let status_code = match &self {
             AppError::Doomed => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::Unlucky => StatusCode::MISDIRECTED_REQUEST,
             AppError::TooLittleTooLate => StatusCode::EXPECTATION_FAILED,
             AppError::Oops => StatusCode::IM_A_TEAPOT,
+            AppError::GenericError(type_, message) => {
+                error!("Internal error [{}]: `{}`", type_, message);
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
             _ => StatusCode::NOT_IMPLEMENTED,
         };
+
+        let body = if status_code == StatusCode::INTERNAL_SERVER_ERROR {
+            "Internal server error".to_string()
+        } else {
+            format!("{:?}", &self)
+        };
+        let boxed_body = body::boxed(body::Full::from(body));
 
         Response::builder()
             .status(status_code)
@@ -58,3 +69,15 @@ impl IntoResponse for AppError {
             .unwrap()
     }
 }
+
+macro_rules! apperror_from {
+    ($err:path) => {
+        impl From<$err> for AppError {
+            fn from(e: $err) -> Self {
+                AppError::GenericError(stringify!($err).to_string(), e.to_string())
+            }
+        }
+    };
+}
+
+apperror_from!(anyhow::Error);
