@@ -29,7 +29,20 @@ use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
-type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
+use tracing::info;
+
+pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
+
+pub async fn setup_pool(postgres_connection_string: &str) -> anyhow::Result<ConnectionPool> {
+    let manager =
+        PostgresConnectionManager::new_from_stringlike(postgres_connection_string, NoTls)?;
+    let pool: ConnectionPool = Pool::builder().build(manager).await?;
+
+    info!("Startup check: pinging database");
+    crate::db::ping(pool.clone()).await?;
+
+    Ok(pool)
+}
 
 #[instrument(skip_all)]
 pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {

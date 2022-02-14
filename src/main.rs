@@ -34,27 +34,18 @@ use tower_http::trace::TraceLayer;
 
 use tracing::{info, error};
 
-use bb8::Pool;
-use bb8_postgres::PostgresConnectionManager;
-use tokio_postgres::NoTls;
-
 use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 
 async fn service(config: &Config) -> anyhow::Result<()> {
-    let manager =
-        PostgresConnectionManager::new_from_stringlike(&config.postgres_connection_string, NoTls)?;
-    let pool = Pool::builder().build(manager).await?;
-
-    info!("Startup check: pinging database");
-    crate::db::ping(pool.clone()).await?;
+    let db_pool = crate::db::setup_pool(&config.postgres_connection_string).await?;
 
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
         .route("/random_error", get(http_methods::random_error))
-        .layer(AddExtensionLayer::new(pool))
+        .layer(AddExtensionLayer::new(db_pool))
         .layer(TraceLayer::new_for_http());
 
     info!("Binding service to {}", config.bind_address);
