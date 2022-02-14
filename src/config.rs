@@ -25,8 +25,6 @@
 
 use anyhow::Result;
 
-const DEFAULT_CONFIG_PATH: &str = "shva.toml";
-
 use serde::Deserialize;
 use std::fs;
 
@@ -42,6 +40,7 @@ impl Config {
     }
 
     pub fn read_default() -> Result<Self> {
-        Config::read(DEFAULT_CONFIG_PATH)
+        let default_config_path = format!("{}.toml", env!("CARGO_PKG_NAME"));
+        Config::read(&default_config_path)
     }
 }
