@@ -32,14 +32,46 @@ use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
 use tracing::info;
+// use tracing_subscriber::prelude::*;
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
+const SERVICE_NAME: &str = "shva";
+
+fn setup_tracing() -> anyhow::Result<()> {
+    use tracing_subscriber::prelude::*;
+    use tracing_subscriber::Registry;
+    use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::fmt;
+
+    opentelemetry::global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
+
+    let jaeger_tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name(SERVICE_NAME)
+        .install_simple()?;
+
+    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(jaeger_tracer);
+
+    let log_fmt_layer = fmt::layer()
+        .with_span_events(FmtSpan::CLOSE);
+
+    let env_filter = tracing_subscriber::filter::EnvFilter::from_default_env();
+
+    let subscriber = Registry::default()
+        .with(env_filter)
+        .with(log_fmt_layer)
+        .with(telemetry_layer);
+
+    tracing::subscriber::set_global_default(subscriber)?;
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::fmt::init();
+    setup_tracing()?;
 
     let config = crate::config::Config::read_default()?;
 
@@ -50,7 +82,7 @@ async fn main() -> anyhow::Result<()> {
     let pool = Pool::builder().build(manager).await?;
 
     info!("Startup check: pinging database");
-    crate::db::ping(pool.clone()).await?;
+    // crate::db::ping(pool.clone()).await?;
 
     let app = Router::new()
         .route("/", get(http_methods::default))
@@ -63,6 +95,9 @@ async fn main() -> anyhow::Result<()> {
     axum::Server::bind(&config.bind_address.parse()?)
         .serve(app.into_make_service())
         .await?;
+
+    // TODO: graceful shutdown
+    opentelemetry::global::shutdown_tracer_provider();
 
     Ok(())
 }

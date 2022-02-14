@@ -23,6 +23,10 @@
  *
  */
 
+use tracing::instrument;
+use tracing::event;
+use tracing::Level;
+
 use rand;
 
 use crate::apperror::AppError;
@@ -35,16 +39,20 @@ pub async fn error() -> Result<String, AppError> {
     Err(AppError::Doomed)
 }
 
-pub async fn random_error() -> Result<String, AppError> {
+#[instrument]
+fn generate_random_error() -> AppError {
     let r: u8 = rand::random();
-    let err = match r % 5 {
+    match r % 5 {
         0 => AppError::Unforseen,
         1 => AppError::Unlucky,
         2 => AppError::Doomed,
         3 => AppError::TooLittleTooLate,
         4 => AppError::Oops,
         _ => AppError::ShouldNeverHappen,
-    };
+    }
+}
 
-    Err(err)
+pub async fn random_error() -> Result<String, AppError> {
+    event!(Level::INFO, "generating random error");
+    Err(generate_random_error())
 }

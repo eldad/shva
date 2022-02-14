@@ -23,12 +23,15 @@
  *
  */
 
+use tracing::instrument;
+
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
 type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
+#[instrument(skip_all)]
 pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {
     let query_string = "SELECT 2";
     let conn = pool.get().await?;
