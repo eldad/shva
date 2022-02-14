@@ -19,5 +19,10 @@ tower = "0.4.11"
 tower-http = { version = "0.2.2", features = ["trace"] }
 hyper = "0.14.17"
 
+# Database
+tokio-postgres = "0.7.5"
+bb8 = "0.7.1"
+bb8-postgres = "0.7.0"
+
 ## Functionality
 rand = "0.8.5"

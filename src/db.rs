@@ -23,25 +23,19 @@
  *
  */
 
-use anyhow::Result;
+use bb8::Pool;
+use bb8_postgres::PostgresConnectionManager;
+use tokio_postgres::NoTls;
 
-const DEFAULT_CONFIG_PATH: &str = "shva.toml";
+type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
-use serde::Deserialize;
-use std::fs;
-
-#[derive(Deserialize)]
-pub struct Config {
-    pub bind_address: String,
-    pub postgres_connection_string: String,
-}
-
-impl Config {
-    pub fn read(filename: &str) -> Result<Self> {
-        Ok(toml::from_str(&fs::read_to_string(filename)?)?)
+pub async fn ping(pool: ConnectionPool) -> anyhow::Result<()> {
+    let query_string = "SELECT 2";
+    let conn = pool.get().await?;
+    let row = conn.query_one(query_string, &[]).await?;
+    let row_result: i32 = row.try_get(0)?;
+    if row_result != 1 {
+        return Err(anyhow::anyhow!("database ping failed due to unexpected result to query_string `{}`: {}", query_string, row_result));
     }
-
-    pub fn read_default() -> Result<Self> {
-        Config::read(DEFAULT_CONFIG_PATH)
-    }
+    Ok(())
 }

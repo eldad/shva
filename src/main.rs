@@ -23,14 +23,19 @@
  *
  */
 
-mod config;
 mod apperror;
+mod config;
+mod db;
 mod http_methods;
 
-use axum::{routing::get, Router};
+use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
 use tracing::info;
+
+use bb8::Pool;
+use bb8_postgres::PostgresConnectionManager;
+use tokio_postgres::NoTls;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,16 +43,24 @@ async fn main() -> anyhow::Result<()> {
 
     let config = crate::config::Config::read_default()?;
 
-    info!("Binding service to {}", config.bind_address);
-
     let tracing_layer = TraceLayer::new_for_http();
+
+    let manager =
+        PostgresConnectionManager::new_from_stringlike(config.postgres_connection_string, NoTls)
+            .unwrap();
+    let pool = Pool::builder().build(manager).await.unwrap();
+
+    info!("Startup check: pinging database");
+    crate::db::ping(pool.clone()).await?;
 
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
         .route("/random_error", get(http_methods::random_error))
+        .layer(AddExtensionLayer::new(pool))
         .layer(tracing_layer);
 
+    info!("Binding service to {}", config.bind_address);
     axum::Server::bind(&config.bind_address.parse()?)
         .serve(app.into_make_service())
         .await?;
