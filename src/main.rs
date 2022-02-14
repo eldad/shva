@@ -32,13 +32,14 @@ use axum::{routing::get, AddExtensionLayer, Router};
 use tower_http::trace::TraceLayer;
 
 use tracing::info;
-// use tracing_subscriber::prelude::*;
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
 
-const SERVICE_NAME: &str = "shva";
+use crate::config::Config;
+
+const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 
 fn setup_tracing() -> anyhow::Result<()> {
     use tracing_subscriber::prelude::*;
@@ -69,35 +70,38 @@ fn setup_tracing() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    setup_tracing()?;
-
-    let config = crate::config::Config::read_default()?;
-
-    let tracing_layer = TraceLayer::new_for_http();
-
+async fn startup(config: &Config) -> anyhow::Result<()> {
     let manager =
-        PostgresConnectionManager::new_from_stringlike(config.postgres_connection_string, NoTls)?;
+        PostgresConnectionManager::new_from_stringlike(&config.postgres_connection_string, NoTls)?;
     let pool = Pool::builder().build(manager).await?;
 
     info!("Startup check: pinging database");
-    // crate::db::ping(pool.clone()).await?;
+    crate::db::ping(pool.clone()).await?;
 
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
         .route("/random_error", get(http_methods::random_error))
         .layer(AddExtensionLayer::new(pool))
-        .layer(tracing_layer);
+        .layer(TraceLayer::new_for_http());
 
     info!("Binding service to {}", config.bind_address);
     axum::Server::bind(&config.bind_address.parse()?)
         .serve(app.into_make_service())
         .await?;
 
-    // TODO: graceful shutdown
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let config = Config::read_default()?;
+
+    setup_tracing()?;
+
+    let result = startup(&config).await;
+
     opentelemetry::global::shutdown_tracer_provider();
 
-    Ok(())
+    result
 }
