@@ -29,7 +29,8 @@ mod config;
 mod db;
 mod http_methods;
 
-use axum::{routing::get, AddExtensionLayer, Router};
+use axum::{routing::get, Router};
+use axum::extract::Extension;
 use tower_http::{
     trace::TraceLayer,
     classify::StatusInRangeAsFailures,
@@ -52,7 +53,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
-        .layer(AddExtensionLayer::new(db_pool))
+        .layer(Extension(db_pool))
         .layer(TraceLayer::new(
             StatusInRangeAsFailures::new(400..=599).into_make_classifier()
         ));
