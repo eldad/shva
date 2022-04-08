@@ -24,24 +24,25 @@
  */
 
 mod apperror;
-mod apptracing;
 mod appmetrics;
+mod apptracing;
 mod config;
 mod db;
 mod http_methods;
 
-use std::sync::Arc;
-use axum::{routing::get, Router, middleware};
+use axum::error_handling::HandleErrorLayer;
 use axum::extract::Extension;
+use axum::http::StatusCode;
+use axum::{middleware, routing::get, BoxError, Router};
 use metrics_exporter_prometheus::PrometheusBuilder;
-use tower_http::{
-    trace::TraceLayer,
-    classify::StatusInRangeAsFailures,
-};
+use std::sync::Arc;
+use tower_http::{classify::StatusInRangeAsFailures, trace::TraceLayer};
 
-use tower::limit::concurrency::GlobalConcurrencyLimitLayer;
+use tower::limit::GlobalConcurrencyLimitLayer;
+use tower::load_shed::LoadShedLayer;
 
 use tokio::signal;
+use tower::ServiceBuilder;
 use tracing::{debug, error, info};
 
 use crate::config::Config;
@@ -61,13 +62,27 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
         .route("/metrics", get(appmetrics::scrape))
-        .layer(GlobalConcurrencyLimitLayer::new(config.service.max_concurrent_connections.unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS)))
-        .layer(Extension(db_pool))
-        .layer(Extension(prometheus_handle))
-        .route_layer(middleware::from_fn(appmetrics::track_latency))
-        .layer(TraceLayer::new(
-            StatusInRangeAsFailures::new(400..=599).into_make_classifier()
-        ));
+        .layer(
+            ServiceBuilder::new()
+                // `LoadShedLayer` may inject errors, therefore it must be preceded with `HandleErrorLayer`.
+                .layer(HandleErrorLayer::new(|_: BoxError| async {
+                    StatusCode::TOO_MANY_REQUESTS
+                }))
+                .layer(LoadShedLayer::new())
+                .layer(GlobalConcurrencyLimitLayer::new(
+                    config
+                        .service
+                        .max_concurrent_connections
+                        .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
+                ))
+                .layer(Extension(db_pool))
+                .layer(Extension(prometheus_handle))
+                .layer(TraceLayer::new(
+                    StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
+                ))
+        )
+        // metrics tracking middleware should come after the service so it can also track errors from layer
+        .route_layer(middleware::from_fn(appmetrics::track_latency));
 
     let bind_address = &config.service.bind_address;
 
