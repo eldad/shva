@@ -28,8 +28,9 @@ mod apptracing;
 mod config;
 mod db;
 mod http_methods;
+mod appmetrics;
 
-use axum::{routing::get, Router};
+use axum::{routing::get, Router, middleware};
 use axum::extract::Extension;
 use tower_http::{
     trace::TraceLayer,
@@ -46,6 +47,10 @@ const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 async fn service(config: &Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
 
+    let metrics_bind_address = &config.service.metrics_bind_address;
+    info!("Binding metrics exporter to {}", metrics_bind_address);
+    appmetrics::install_prometheus_exporter(metrics_bind_address.parse()?)?;
+
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
@@ -54,6 +59,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
         .layer(Extension(db_pool))
+        .route_layer(middleware::from_fn(appmetrics::track_latency))
         .layer(TraceLayer::new(
             StatusInRangeAsFailures::new(400..=599).into_make_classifier()
         ));

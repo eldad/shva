@@ -6,6 +6,7 @@ SERVICE_BASE_URL := "localhost:8042"
 CURL := curl -w "\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
 
 run:
+	docker-compose up -d
 	cargo run
 
 debug:

@@ -23,36 +23,43 @@
  *
  */
 
-use anyhow::Result;
+use std::net::SocketAddr;
+use axum::extract::MatchedPath;
+use axum::http::Request;
+use axum::middleware::Next;
+use axum::response::IntoResponse;
+use metrics_exporter_prometheus::PrometheusBuilder;
+use tokio::time::Instant;
 
-use serde::Deserialize;
-use std::fs;
-
-#[derive(Deserialize, Debug)]
-pub struct Config {
-    pub service: ServiceConfig,
-    pub database: DatabaseConfig,
+pub fn install_prometheus_exporter(addr: SocketAddr) -> anyhow::Result<()> {
+    PrometheusBuilder::new()
+        .with_http_listener(addr)
+        .install()?;
+    Ok(())
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ServiceConfig {
-    pub bind_address: String,
-    pub metrics_bind_address: String,
-}
+pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    let path = match req.extensions().get::<MatchedPath>() {
+        Some(path) => path.as_str().to_owned(),
+        None => "*".into(),
+    };
 
-#[derive(Deserialize, Debug)]
-pub struct DatabaseConfig {
-    pub postgres_connection_string: String,
-    pub connection_timeout_secs: Option<u64>,
-}
+    let method = req.method().as_str().to_owned();
 
-impl Config {
-    pub fn read(filename: &str) -> Result<Self> {
-        Ok(toml::from_str(&fs::read_to_string(filename)?)?)
-    }
+    // Measure latency
+    let now = Instant::now();
+    let response = next.run(req).await;
+    let duration = now.elapsed().as_secs_f64();
 
-    pub fn read_default() -> Result<Self> {
-        let default_config_path = format!("{}.toml", env!("CARGO_PKG_NAME"));
-        Config::read(&default_config_path)
-    }
+    let code = response.status().as_u16().to_string();
+
+    let labels = [
+        ("method", method),
+        ("path", path),
+        ("code", code),
+    ];
+
+    metrics::histogram!("http_request_duration_seconds", duration, &labels);
+
+    response
 }
