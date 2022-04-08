@@ -23,20 +23,13 @@
  *
  */
 
-use std::net::SocketAddr;
-use axum::extract::MatchedPath;
+use std::sync::Arc;
+use axum::extract::{Extension, MatchedPath};
 use axum::http::Request;
 use axum::middleware::Next;
 use axum::response::IntoResponse;
-use metrics_exporter_prometheus::PrometheusBuilder;
+use metrics_exporter_prometheus::PrometheusHandle;
 use tokio::time::Instant;
-
-pub fn install_prometheus_exporter(addr: SocketAddr) -> anyhow::Result<()> {
-    PrometheusBuilder::new()
-        .with_http_listener(addr)
-        .install()?;
-    Ok(())
-}
 
 pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {
@@ -62,4 +55,8 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     metrics::histogram!("http_request_duration_seconds", duration, &labels);
 
     response
+}
+
+pub async fn scrape(Extension(prometheus_handle): Extension<Arc<PrometheusHandle>>) -> String {
+    prometheus_handle.render()
 }

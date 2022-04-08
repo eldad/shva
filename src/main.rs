@@ -25,13 +25,15 @@
 
 mod apperror;
 mod apptracing;
+mod appmetrics;
 mod config;
 mod db;
 mod http_methods;
-mod appmetrics;
 
+use std::sync::Arc;
 use axum::{routing::get, Router, middleware};
 use axum::extract::Extension;
+use metrics_exporter_prometheus::PrometheusBuilder;
 use tower_http::{
     trace::TraceLayer,
     classify::StatusInRangeAsFailures,
@@ -46,10 +48,7 @@ const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 
 async fn service(config: &Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
-
-    let metrics_bind_address = &config.service.metrics_bind_address;
-    info!("Binding metrics exporter to {}", metrics_bind_address);
-    appmetrics::install_prometheus_exporter(metrics_bind_address.parse()?)?;
+    let prometheus_handle = Arc::new(PrometheusBuilder::new().install_recorder()?);
 
     let app = Router::new()
         .route("/", get(http_methods::default))
@@ -58,7 +57,9 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
+        .route("/metrics", get(appmetrics::scrape))
         .layer(Extension(db_pool))
+        .layer(Extension(prometheus_handle))
         .route_layer(middleware::from_fn(appmetrics::track_latency))
         .layer(TraceLayer::new(
             StatusInRangeAsFailures::new(400..=599).into_make_classifier()
