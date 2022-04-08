@@ -29,6 +29,7 @@ mod apptracing;
 mod config;
 mod db;
 mod http_methods;
+mod apikey_auth;
 
 use axum::error_handling::HandleErrorLayer;
 use axum::extract::Extension;
@@ -50,6 +51,7 @@ use tower::load_shed::error::Overloaded;
 use tower::timeout::error::Elapsed;
 use tower::timeout::TimeoutLayer;
 use tower::ServiceBuilder;
+use tower_http::auth::RequireAuthorizationLayer;
 use tracing::{debug, error, event, info, Level};
 
 use crate::config::Config;
@@ -70,7 +72,7 @@ async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoRes
     }
 }
 
-async fn service(config: &Config) -> anyhow::Result<()> {
+async fn service(config: Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
     let prometheus_handle = Arc::new(PrometheusBuilder::new().install_recorder()?);
     let global_concurrency_semapshore = Arc::new(Semaphore::new(
@@ -80,6 +82,8 @@ async fn service(config: &Config) -> anyhow::Result<()> {
             .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
     ));
 
+    let auth_layer = RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
+
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
@@ -87,6 +91,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
+        .layer(auth_layer)
         .layer(
             ServiceBuilder::new()
                 // `LoadShedLayer` may inject errors, therefore it must be preceded with `HandleErrorLayer`.
@@ -129,7 +134,7 @@ async fn main() -> anyhow::Result<()> {
 
     debug!("config = {:#?}", config);
 
-    let result = service(&config).await;
+    let result = service(config).await;
 
     match &result {
         Ok(_) => info!("Normal service shutdown"),

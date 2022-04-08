@@ -6,3 +6,7 @@ request_timeout_milliseconds = 5_000
 [database]
 postgres_connection_string = "host=localhost user=shva password=shva dbname=shva"
 connection_timeout_secs = 10
+
+[apikeys]
+"apikey1" = "user1"
+"apikey2" = "user2"

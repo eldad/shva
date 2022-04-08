@@ -24,38 +24,47 @@
  */
 
 use std::collections::HashMap;
-use anyhow::Result;
+use hyper::{Request, StatusCode};
+use tower_http::auth::AuthorizeRequest;
+use axum::body::{BoxBody};
+use axum::http::Response;
 
-use serde::Deserialize;
-use std::fs;
-
-#[derive(Deserialize, Debug)]
-pub struct Config {
-    pub service: ServiceConfig,
-    pub database: DatabaseConfig,
-    pub apikeys: HashMap<String, String>,
+#[derive(Clone)]
+pub struct ApiKeyAuth {
+    apikeys: HashMap<String, String>,
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ServiceConfig {
-    pub bind_address: String,
-    pub max_concurrent_connections: Option<usize>,
-    pub request_timeout_milliseconds: u64,
-}
+const APIKEY_HEADER: &str = "x-auth-api-key";
 
-#[derive(Deserialize, Debug)]
-pub struct DatabaseConfig {
-    pub postgres_connection_string: String,
-    pub connection_timeout_secs: Option<u64>,
-}
+#[derive(Debug)]
+struct ApiKeyAuthUserId(String);
 
-impl Config {
-    pub fn read(filename: &str) -> Result<Self> {
-        Ok(toml::from_str(&fs::read_to_string(filename)?)?)
+impl ApiKeyAuth {
+    pub fn from_apikeys(apikeys: HashMap<String, String>) -> Self {
+        Self {
+            apikeys,
+        }
     }
+}
 
-    pub fn read_default() -> Result<Self> {
-        let default_config_path = format!("{}.toml", env!("CARGO_PKG_NAME"));
-        Config::read(&default_config_path)
+impl<B> AuthorizeRequest<B> for ApiKeyAuth
+{
+    type ResponseBody = BoxBody;
+
+    fn authorize(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
+        let user_id = request.headers().get(APIKEY_HEADER)
+            .and_then(|key| key.to_str().ok())
+            .and_then(|key| self.apikeys.get(key));
+        match user_id {
+            Some(user_id) => {
+                request.extensions_mut().insert(user_id.clone());
+                Ok(())
+            },
+            None => {
+                let unauthorized_response = Response::builder()
+                .status(StatusCode::UNAUTHORIZED).body(Default::default()).unwrap();
+                Err(unauthorized_response.into())
+            }
+        }
     }
 }
