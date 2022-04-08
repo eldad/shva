@@ -30,6 +30,7 @@ use axum::middleware::Next;
 use axum::response::IntoResponse;
 use metrics_exporter_prometheus::PrometheusHandle;
 use tokio::time::Instant;
+use crate::db::ConnectionPool;
 
 pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {
@@ -57,6 +58,15 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     response
 }
 
-pub async fn scrape(Extension(prometheus_handle): Extension<Arc<PrometheusHandle>>) -> String {
+pub async fn scrape(Extension(prometheus_handle): Extension<Arc<PrometheusHandle>>, Extension(pool): Extension<ConnectionPool>) -> String {
+    // Get all current gauge metrics
+    let pool_state = pool.state();
+    track_database_pool_state(pool_state.connections, pool_state.idle_connections);
+
     prometheus_handle.render()
+}
+
+fn track_database_pool_state(connections: u32, idle_connections: u32) {
+    metrics::gauge!("database_pool_connections", connections as f64);
+    metrics::gauge!("database_pool_idle_connections", idle_connections as f64);
 }
