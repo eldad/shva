@@ -1,6 +1,7 @@
 [service]
 bind_address = "0.0.0.0:8042"
 max_concurrent_connections = 3
+request_timeout_milliseconds = 5_000
 
 [database]
 postgres_connection_string = "host=localhost user=shva password=shva dbname=shva"

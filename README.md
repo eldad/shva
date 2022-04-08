@@ -13,11 +13,6 @@ Prometheus Metrics are available in the `/metrics` endpoint.
 Since the `metrics-exporter-prometheus` crate currently does not provider any callback mechanism, I opted out of using the `http-listener`.
 By rendering inside axum, one can use the tower `Extension` facility to track the state directly before a scrape call.
 
-## Overload protection
-
-The amount of concurrent requests can be limited. Monitoring endpoints are exempt (currently only `/metrics`).
-When the concurrency limit is exceeded, 429 responses are sent to the client (via load shedding middleware).
-
 ## Features
 
 - [x] Prometheus metrics
@@ -28,6 +23,11 @@ When the concurrency limit is exceeded, 429 responses are sent to the client (vi
 - [ ] Request timeout
 - [x] Basic database access (postgresql)
 - [x] Logging and tracing, export to Jaeger
+
+### Concurrency control and load shedding
+
+The amount of concurrent requests can be limited. Monitoring endpoints are exempt (currently only `/metrics`).
+When the concurrency limit is exceeded, 429 responses are sent to the client (via load shedding middleware).
 
 ## Performance measurements
 

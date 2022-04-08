@@ -32,25 +32,43 @@ mod http_methods;
 
 use axum::error_handling::HandleErrorLayer;
 use axum::extract::Extension;
-use axum::http::StatusCode;
+use axum::http::{Method, StatusCode, Uri};
+use axum::response::IntoResponse;
 use axum::{middleware, routing::get, BoxError, Router};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use std::sync::Arc;
+use std::time::Duration;
+use tower_http::compression::CompressionLayer;
 use tower_http::{classify::StatusInRangeAsFailures, trace::TraceLayer};
-use tower_http::{compression::CompressionLayer};
 
 use tower::limit::GlobalConcurrencyLimitLayer;
 use tower::load_shed::LoadShedLayer;
 
 use tokio::signal;
 use tokio::sync::Semaphore;
+use tower::load_shed::error::Overloaded;
+use tower::timeout::error::Elapsed;
+use tower::timeout::TimeoutLayer;
 use tower::ServiceBuilder;
-use tracing::{debug, error, info};
+use tracing::{debug, error, event, info, Level};
 
 use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 const DEFAULT_MAX_CONCURRENT_CONNECTIONS: usize = 3;
+
+async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoResponse {
+    if error.is::<Elapsed>() {
+        event!(Level::WARN, %method, %uri, "request timeout");
+        (StatusCode::GATEWAY_TIMEOUT, "timeout")
+    } else if error.is::<Overloaded>() {
+        event!(Level::ERROR, %method, %uri, "in-flight request concurrency limit exceeded");
+        (StatusCode::TOO_MANY_REQUESTS, "too many requests")
+    } else {
+        event!(Level::ERROR, %method, %uri, %error, "internal error");
+        (StatusCode::INTERNAL_SERVER_ERROR, "error")
+    }
+}
 
 async fn service(config: &Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
@@ -72,13 +90,14 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .layer(
             ServiceBuilder::new()
                 // `LoadShedLayer` may inject errors, therefore it must be preceded with `HandleErrorLayer`.
-                .layer(HandleErrorLayer::new(|_: BoxError| async {
-                    StatusCode::TOO_MANY_REQUESTS
-                }))
+                .layer(HandleErrorLayer::new(handle_error))
                 .layer(LoadShedLayer::new())
                 .layer(GlobalConcurrencyLimitLayer::with_semaphore(
                     global_concurrency_semapshore.clone(),
                 ))
+                .layer(TimeoutLayer::new(Duration::from_millis(
+                    config.service.request_timeout_milliseconds,
+                )))
                 .layer(TraceLayer::new(
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
                 )),

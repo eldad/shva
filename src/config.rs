@@ -38,6 +38,7 @@ pub struct Config {
 pub struct ServiceConfig {
     pub bind_address: String,
     pub max_concurrent_connections: Option<usize>,
+    pub request_timeout_milliseconds: u64,
 }
 
 #[derive(Deserialize, Debug)]
