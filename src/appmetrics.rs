@@ -24,14 +24,15 @@
  */
 
 use crate::db::ConnectionPool;
-use axum::extract::{Extension, MatchedPath};
-use axum::http::Request;
-use axum::middleware::Next;
-use axum::response::IntoResponse;
+use axum::{
+    extract::{Extension, MatchedPath},
+    http::Request,
+    middleware::Next,
+    response::IntoResponse,
+};
 use metrics_exporter_prometheus::PrometheusHandle;
 use std::sync::Arc;
-use tokio::time::Instant;
-use tokio::sync::Semaphore;
+use tokio::{sync::Semaphore, time::Instant};
 
 pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {
@@ -65,7 +66,10 @@ pub async fn scrape(
     track_database_pool_state(pool_state.connections, pool_state.idle_connections);
 
     let global_concurrency_available_permits = global_concurrency_semapshore.available_permits();
-    metrics::gauge!("global_concurrency_available_permits", global_concurrency_available_permits as f64);
+    metrics::gauge!(
+        "global_concurrency_available_permits",
+        global_concurrency_available_permits as f64
+    );
 
     prometheus_handle.render()
 }

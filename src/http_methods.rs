@@ -23,12 +23,10 @@
  *
  */
 
-use tracing::instrument;
-use tracing::event;
-use tracing::Level;
+use tracing::{event, instrument, Level};
 
-use axum::extract::Extension;
 use crate::db::ConnectionPool;
+use axum::extract::Extension;
 
 use rand;
 
@@ -60,11 +58,15 @@ pub async fn random_error() -> Result<String, AppError> {
     Err(generate_random_error())
 }
 
-pub async fn simulate_query_short(Extension(pool): Extension<ConnectionPool>) -> Result<(), AppError> {
+pub async fn simulate_query_short(
+    Extension(pool): Extension<ConnectionPool>,
+) -> Result<(), AppError> {
     Ok(crate::db::simulate_query_short(pool).await?)
 }
 
-pub async fn simulate_query_long(Extension(pool): Extension<ConnectionPool>) -> Result<(), AppError> {
+pub async fn simulate_query_long(
+    Extension(pool): Extension<ConnectionPool>,
+) -> Result<(), AppError> {
     Ok(crate::db::simulate_query_long(pool).await?)
 }
 

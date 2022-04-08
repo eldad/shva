@@ -23,13 +23,9 @@
  *
  */
 
-use tracing_subscriber::prelude::*;
-use tracing_subscriber::Registry;
-use tracing_subscriber::fmt::format::FmtSpan;
-use tracing_subscriber::fmt;
+use tracing_subscriber::{fmt, fmt::format::FmtSpan, prelude::*, Registry};
 
 pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
-
     opentelemetry::global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
 
     let jaeger_tracer = opentelemetry_jaeger::new_pipeline()
@@ -38,8 +34,7 @@ pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
 
     let telemetry_layer = tracing_opentelemetry::layer().with_tracer(jaeger_tracer);
 
-    let log_fmt_layer = fmt::layer()
-        .with_span_events(FmtSpan::CLOSE);
+    let log_fmt_layer = fmt::layer().with_span_events(FmtSpan::CLOSE);
 
     let env_filter = tracing_subscriber::filter::EnvFilter::from_default_env();
 

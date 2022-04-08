@@ -27,9 +27,7 @@ use crate::config::DatabaseConfig;
 
 use std::time::Duration;
 
-use tracing::instrument;
-use tracing::event;
-use tracing::Level;
+use tracing::{event, instrument, Level};
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
@@ -89,7 +87,6 @@ pub async fn simulate_query_short(pool: ConnectionPool) -> anyhow::Result<()> {
     pg_sleep(pool, random_duration).await?;
     Ok(())
 }
-
 
 #[instrument(skip_all)]
 pub async fn simulate_query_long(pool: ConnectionPool) -> anyhow::Result<()> {

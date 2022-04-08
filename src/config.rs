@@ -23,8 +23,8 @@
  *
  */
 
-use std::collections::HashMap;
 use anyhow::Result;
+use std::collections::HashMap;
 
 use serde::Deserialize;
 use std::fs;

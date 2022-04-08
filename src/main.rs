@@ -23,34 +23,37 @@
  *
  */
 
+mod apikey_auth;
 mod apperror;
 mod appmetrics;
 mod apptracing;
 mod config;
 mod db;
 mod http_methods;
-mod apikey_auth;
 
-use axum::error_handling::HandleErrorLayer;
-use axum::extract::Extension;
-use axum::http::{Method, StatusCode, Uri};
-use axum::response::IntoResponse;
-use axum::{middleware, routing::get, BoxError, Router};
+use axum::{
+    error_handling::HandleErrorLayer,
+    extract::Extension,
+    http::{Method, StatusCode, Uri},
+    middleware,
+    response::IntoResponse,
+    routing::get,
+    BoxError, Router,
+};
 use metrics_exporter_prometheus::PrometheusBuilder;
-use std::sync::Arc;
-use std::time::Duration;
-use tower_http::compression::CompressionLayer;
-use tower_http::{classify::StatusInRangeAsFailures, trace::TraceLayer};
+use std::{sync::Arc, time::Duration};
+use tower_http::{
+    classify::StatusInRangeAsFailures, compression::CompressionLayer, trace::TraceLayer,
+};
 
-use tower::limit::GlobalConcurrencyLimitLayer;
-use tower::load_shed::LoadShedLayer;
+use tower::{limit::GlobalConcurrencyLimitLayer, load_shed::LoadShedLayer};
 
-use tokio::signal;
-use tokio::sync::Semaphore;
-use tower::load_shed::error::Overloaded;
-use tower::timeout::error::Elapsed;
-use tower::timeout::TimeoutLayer;
-use tower::ServiceBuilder;
+use tokio::{signal, sync::Semaphore};
+use tower::{
+    load_shed::error::Overloaded,
+    timeout::{error::Elapsed, TimeoutLayer},
+    ServiceBuilder,
+};
 use tower_http::auth::RequireAuthorizationLayer;
 use tracing::{debug, error, event, info, Level};
 
@@ -82,7 +85,8 @@ async fn service(config: Config) -> anyhow::Result<()> {
             .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
     ));
 
-    let auth_layer = RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
+    let auth_layer =
+        RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
 
     let app = Router::new()
         .route("/", get(http_methods::default))

@@ -23,11 +23,10 @@
  *
  */
 
-use std::collections::HashMap;
+use axum::{body::BoxBody, http::Response};
 use hyper::{Request, StatusCode};
+use std::collections::HashMap;
 use tower_http::auth::AuthorizeRequest;
-use axum::body::{BoxBody};
-use axum::http::Response;
 
 #[derive(Clone)]
 pub struct ApiKeyAuth {
@@ -41,28 +40,29 @@ struct ApiKeyAuthUserId(String);
 
 impl ApiKeyAuth {
     pub fn from_apikeys(apikeys: HashMap<String, String>) -> Self {
-        Self {
-            apikeys,
-        }
+        Self { apikeys }
     }
 }
 
-impl<B> AuthorizeRequest<B> for ApiKeyAuth
-{
+impl<B> AuthorizeRequest<B> for ApiKeyAuth {
     type ResponseBody = BoxBody;
 
     fn authorize(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
-        let user_id = request.headers().get(APIKEY_HEADER)
+        let user_id = request
+            .headers()
+            .get(APIKEY_HEADER)
             .and_then(|key| key.to_str().ok())
             .and_then(|key| self.apikeys.get(key));
         match user_id {
             Some(user_id) => {
                 request.extensions_mut().insert(user_id.clone());
                 Ok(())
-            },
+            }
             None => {
                 let unauthorized_response = Response::builder()
-                .status(StatusCode::UNAUTHORIZED).body(Default::default()).unwrap();
+                    .status(StatusCode::UNAUTHORIZED)
+                    .body(Default::default())
+                    .unwrap();
                 Err(unauthorized_response.into())
             }
         }
