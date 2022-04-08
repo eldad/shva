@@ -18,8 +18,11 @@ By rendering inside axum, one can use the tower `Extension` facility to track th
 The amount of concurrent requests can be limited. Monitoring endpoints are exempt (currently only `/metrics`).
 When the concurrency limit is exceeded, 429 responses are sent to the client (via load shedding middleware).
 
-## TODO
+## Features
 
+- [x] Prometheus metrics
+- [x] Concurrency control
+- [x] Load shedding
 - [ ] compression/decompression
 - [ ] rate limiting
 

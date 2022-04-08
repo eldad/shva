@@ -3,7 +3,7 @@
 export RUST_LOG := shva=info
 
 SERVICE_BASE_URL := "localhost:8042"
-CURL := curl -w "\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
+CURL := curl --compressed -w "\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
 
 run:
 	docker-compose up -d
@@ -13,6 +13,8 @@ debug:
 	RUST_LOG=debug cargo run
 
 test:
+	$(CURL) $(SERVICE_BASE_URL)/metrics
+
 	$(CURL) $(SERVICE_BASE_URL)/
 	$(CURL) $(SERVICE_BASE_URL)/error
 

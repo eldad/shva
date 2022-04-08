@@ -37,6 +37,7 @@ use axum::{middleware, routing::get, BoxError, Router};
 use metrics_exporter_prometheus::PrometheusBuilder;
 use std::sync::Arc;
 use tower_http::{classify::StatusInRangeAsFailures, trace::TraceLayer};
+use tower_http::{compression::CompressionLayer};
 
 use tower::limit::GlobalConcurrencyLimitLayer;
 use tower::load_shed::LoadShedLayer;
@@ -86,6 +87,7 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .layer(Extension(db_pool))
         .layer(Extension(prometheus_handle))
         .layer(Extension(global_concurrency_semapshore))
+        .layer(CompressionLayer::new())
         // metrics tracking middleware should come after the service so it can also track errors from layer
         .route_layer(middleware::from_fn(appmetrics::track_latency));
 
