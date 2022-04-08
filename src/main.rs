@@ -42,6 +42,7 @@ use tower::limit::GlobalConcurrencyLimitLayer;
 use tower::load_shed::LoadShedLayer;
 
 use tokio::signal;
+use tokio::sync::Semaphore;
 use tower::ServiceBuilder;
 use tracing::{debug, error, info};
 
@@ -53,6 +54,12 @@ const DEFAULT_MAX_CONCURRENT_CONNECTIONS: usize = 3;
 async fn service(config: &Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
     let prometheus_handle = Arc::new(PrometheusBuilder::new().install_recorder()?);
+    let global_concurrency_semapshore = Arc::new(Semaphore::new(
+        config
+            .service
+            .max_concurrent_connections
+            .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
+    ));
 
     let app = Router::new()
         .route("/", get(http_methods::default))
@@ -68,19 +75,17 @@ async fn service(config: &Config) -> anyhow::Result<()> {
                     StatusCode::TOO_MANY_REQUESTS
                 }))
                 .layer(LoadShedLayer::new())
-                .layer(GlobalConcurrencyLimitLayer::new(
-                    config
-                        .service
-                        .max_concurrent_connections
-                        .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
+                .layer(GlobalConcurrencyLimitLayer::with_semaphore(
+                    global_concurrency_semapshore.clone(),
                 ))
                 .layer(TraceLayer::new(
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
-                ))
+                )),
         )
         .route("/metrics", get(appmetrics::scrape))
         .layer(Extension(db_pool))
         .layer(Extension(prometheus_handle))
+        .layer(Extension(global_concurrency_semapshore))
         // metrics tracking middleware should come after the service so it can also track errors from layer
         .route_layer(middleware::from_fn(appmetrics::track_latency));
 
