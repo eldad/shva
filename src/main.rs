@@ -61,7 +61,6 @@ async fn service(config: &Config) -> anyhow::Result<()> {
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/dbping", get(http_methods::database_ping))
-        .route("/metrics", get(appmetrics::scrape))
         .layer(
             ServiceBuilder::new()
                 // `LoadShedLayer` may inject errors, therefore it must be preceded with `HandleErrorLayer`.
@@ -75,12 +74,13 @@ async fn service(config: &Config) -> anyhow::Result<()> {
                         .max_concurrent_connections
                         .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
                 ))
-                .layer(Extension(db_pool))
-                .layer(Extension(prometheus_handle))
                 .layer(TraceLayer::new(
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
                 ))
         )
+        .route("/metrics", get(appmetrics::scrape))
+        .layer(Extension(db_pool))
+        .layer(Extension(prometheus_handle))
         // metrics tracking middleware should come after the service so it can also track errors from layer
         .route_layer(middleware::from_fn(appmetrics::track_latency));
 
