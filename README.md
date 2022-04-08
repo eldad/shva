@@ -7,6 +7,12 @@ Learning experiment with Axum.
 The Hebrew word "שווא" (also pronounced `Shva`) is a collection of grammatical phonemena, which is spelled - when leaving out the diacritics - the same as the word "שווא" (pronounced approx. `Shav`), meaning "fruitless, in vain".
 Though not entirely fruitless, since learning in itself is never a wasted effort!
 
+## Metrics
+
+Prometheus Metrics are available in the `/metrics` endpoint.
+Since the `metrics-exporter-prometheus` crate currently does not provider any callback mechanism, I opted out of using the `http-listener`.
+By rendering inside axum, one can use the tower `Extension` facility to track the state directly before a scrape call.
+
 ## Performance measurements
 
 Measured with [hey](https://github.com/rakyll/hey) on my personal machine (AMD Ryzen 5 5600H).
