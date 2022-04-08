@@ -1,6 +1,5 @@
 [service]
 bind_address = "0.0.0.0:8042"
-metrics_bind_address = "0.0.0.0:9042"
 
 [database]
 postgres_connection_string = "host=localhost user=shva password=shva dbname=shva"

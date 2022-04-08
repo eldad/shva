@@ -37,7 +37,6 @@ pub struct Config {
 #[derive(Deserialize, Debug)]
 pub struct ServiceConfig {
     pub bind_address: String,
-    pub metrics_bind_address: String,
 }
 
 #[derive(Deserialize, Debug)]
