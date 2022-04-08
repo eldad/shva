@@ -20,9 +20,10 @@ By rendering inside axum, one can use the tower `Extension` facility to track th
 - [x] Load shedding
 - [x] Compression/Decompression
 - [ ] Rate limiting
-- [ ] Request timeout
+- [x] Request timeout
 - [x] Basic database access (postgresql)
 - [x] Logging and tracing, export to Jaeger
+- [x] Simple config-file based API Key authentication
 
 ### Concurrency control and load shedding
 
