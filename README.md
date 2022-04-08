@@ -23,10 +23,11 @@ When the concurrency limit is exceeded, 429 responses are sent to the client (vi
 - [x] Prometheus metrics
 - [x] Concurrency control
 - [x] Load shedding
-- [x] compression/decompression
-- [ ] rate limiting
-- [x] basic database access
-- [x] logging and tracing, export to Jaeger
+- [x] Compression/Decompression
+- [ ] Rate limiting
+- [ ] Request timeout
+- [x] Basic database access (postgresql)
+- [x] Logging and tracing, export to Jaeger
 
 ## Performance measurements
 
