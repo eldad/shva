@@ -3,7 +3,7 @@
 export RUST_LOG := shva=info
 
 SERVICE_BASE_URL := "localhost:8042"
-CURL := curl --compressed -w "\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
+CURL := curl -H 'x-auth-api-key:apikey1' --compressed -w "\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
 
 run:
 	docker-compose up -d
