@@ -63,14 +63,16 @@ pub async fn random_error() -> Result<String, AppError> {
 
 pub async fn simulate_query_short(
     Extension(pool): Extension<ConnectionPool>,
-) -> Result<(), AppError> {
-    Ok(crate::db::simulate_query_short(pool).await?)
+) -> Result<StatusCode, AppError> {
+    crate::db::simulate_query_short(pool).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn simulate_query_long(
     Extension(pool): Extension<ConnectionPool>,
-) -> Result<(), AppError> {
-    Ok(crate::db::simulate_query_long(pool).await?)
+) -> Result<StatusCode, AppError> {
+    crate::db::simulate_query_long(pool).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result<StatusCode, AppError> {
