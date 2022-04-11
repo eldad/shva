@@ -28,10 +28,10 @@ mod apperror;
 mod appmetrics;
 mod apptracing;
 mod config;
+mod database_migrations;
 mod db;
 mod http_methods;
 
-use std::collections::{HashMap};
 use std::{sync::Arc, time::Duration};
 
 use anyhow::anyhow;
@@ -46,7 +46,6 @@ use axum::{
 };
 use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio::{signal, sync::Semaphore};
-use tokio_postgres::NoTls;
 use tower::{
     limit::GlobalConcurrencyLimitLayer,
     load_shed::{error::Overloaded, LoadShedLayer},
@@ -169,20 +168,20 @@ async fn service(config: Config) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn generate_openapi() -> anyhow::Result<()> {
+    println!("{}", ApiDoc::openapi().to_pretty_json()?);
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    let config = Config::read_default()?;
+
     if let Some(command) = std::env::args().nth(1) {
-        return match command.as_str() {
-            "openapi" => generate_openapi(),
-            "migrate" => refinery_migrate(false).await,
-            "check-migrations" => refinery_migrate(true).await,
-            _ => Err(anyhow!("unknown command {}", command)),
-        };
+        return run_command(&command, config).await;
     }
 
     // Invoked without a command: run the service
-    let config = Config::read_default()?;
-
     crate::apptracing::setup_tracing(SERVICE_NAME)?;
 
     debug!("config = {:#?}", config);
@@ -200,57 +199,19 @@ async fn main() -> anyhow::Result<()> {
     result
 }
 
-async fn refinery_migrate(dryrun: bool) -> anyhow::Result<()> {
-    mod embedded {
-        refinery::embed_migrations!("./migrations");
+async fn run_command(command: &str, config: Config) -> anyhow::Result<()> {
+    match command {
+        "openapi" => generate_openapi(),
+        "migrate" =>
+            database_migrations::refinery_migrate(
+                &config.database.postgres_connection_string,
+                false,
+            )
+            .await,
+        "check-migrations" =>
+            database_migrations::refinery_migrate(&config.database.postgres_connection_string, true)
+                .await,
+        "verify-migration-versioning" => database_migrations::verify_migration_versioning(),
+        _ => Err(anyhow!("unknown command {}", command)),
     }
-
-    let config = Config::read_default()?;
-
-    let (mut client, connection) =
-        tokio_postgres::connect(&config.database.postgres_connection_string, NoTls).await?;
-
-    tokio::spawn(async move {
-        connection.await.unwrap();
-    });
-
-    let runner = embedded::migrations::runner();
-
-    println!("Applied migrations:");
-    let mut applied_migrations = runner
-        .get_applied_migrations_async(&mut client)
-        .await?
-        .into_iter()
-        .map(|migration| (migration.name().to_owned(), migration.applied_on().cloned()))
-        .collect::<HashMap<String, _>>();
-
-    let migrations = runner.get_migrations();
-    migrations.iter().for_each(|migration| {
-        let applied_on = applied_migrations
-            .remove(migration.name())
-            .flatten()
-            .map(|applied_on| format!("{}", applied_on))
-            .unwrap_or_else(|| String::from("-"));
-
-        println!(
-            "{} | {} | {} | {:#016x} ",
-            migration.version(),
-            applied_on,
-            migration.name(),
-            migration.checksum()
-        );
-    });
-
-    if !dryrun {
-        println!("Running migrations");
-        runner.run_async(&mut client).await?;
-        println!("Success!");
-    }
-
-    Ok(())
-}
-
-fn generate_openapi() -> anyhow::Result<()> {
-    println!("{}", ApiDoc::openapi().to_pretty_json()?);
-    Ok(())
 }
