@@ -15,15 +15,23 @@ By rendering inside axum, one can use the tower `Extension` facility to track th
 
 ## Features
 
-- [x] Prometheus metrics
-- [x] Concurrency control
-- [x] Load shedding
+- [x] Request control
+  - [x] Concurrency limiter
+  - [ ] ~~Rate limiter~~
+  - [x] Load shedding (by backpressure)
+  - [x] Request timeout
 - [x] Compression/Decompression
-- [ ] Rate limiting
-- [x] Request timeout
 - [x] Basic database access (postgresql)
+- [x] Prometheus metrics
+- [x] Kubernetes health probes
+  - [x] Database readiness check endpoint
+  - [x] No-content liveness check
 - [x] Logging and tracing, export to Jaeger
 - [x] Simple config-file based API Key authentication
+  - [ ] Log metrics with associated api key user ID
+- [ ] [Database migrations](https://github.com/rust-db/refinery)
+- [ ] OpenAPI
+  - [ ] Look into [axum_openapi](https://github.com/jakobhellermann/axum_openapi)
 
 ### Concurrency control and load shedding
 

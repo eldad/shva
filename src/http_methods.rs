@@ -27,11 +27,16 @@ use tracing::{event, instrument, Level};
 
 use crate::db::ConnectionPool;
 use axum::extract::Extension;
+use axum::http::StatusCode;
 
 use crate::apperror::AppError;
 
 pub async fn default() -> String {
     "OK".to_string()
+}
+
+pub async fn liveness() -> StatusCode {
+    StatusCode::NO_CONTENT
 }
 
 pub async fn error() -> Result<String, AppError> {

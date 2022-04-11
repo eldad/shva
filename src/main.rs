@@ -94,7 +94,6 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .route("/random_error", get(http_methods::random_error))
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
-        .route("/dbping", get(http_methods::database_ping))
         .layer(auth_layer)
         .layer(
             ServiceBuilder::new()
@@ -111,7 +110,9 @@ async fn service(config: Config) -> anyhow::Result<()> {
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
                 ))
         )
-        .route("/metrics", get(appmetrics::scrape))
+        .route("/monitoring/liveness", get(http_methods::liveness))
+        .route("/monitoring/readiness", get(http_methods::database_ping))
+        .route("/monitoring/metrics", get(appmetrics::scrape))
         .layer(Extension(db_pool))
         .layer(Extension(prometheus_handle))
         .layer(Extension(global_concurrency_semapshore))
