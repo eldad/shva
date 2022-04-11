@@ -26,7 +26,6 @@
 use tracing::error;
 
 use axum::{
-    body,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -56,17 +55,12 @@ impl IntoResponse for AppError {
             _ => StatusCode::NOT_IMPLEMENTED,
         };
 
-        let body = if status_code == StatusCode::INTERNAL_SERVER_ERROR {
-            "Internal server error".to_string()
-        } else {
-            format!("{:?}", &self)
+        let body = match status_code {
+            StatusCode::INTERNAL_SERVER_ERROR => "Internal server error".to_string(),
+            _ => format!("{:?}", &self),
         };
-        let boxed_body = body::boxed(body::Full::from(body));
 
-        Response::builder()
-            .status(status_code)
-            .body(boxed_body)
-            .unwrap()
+        (status_code, body).into_response()
     }
 }
 
