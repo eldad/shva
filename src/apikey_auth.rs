@@ -63,7 +63,7 @@ impl<B> AuthorizeRequest<B> for ApiKeyAuth {
                     .status(StatusCode::UNAUTHORIZED)
                     .body(Default::default())
                     .unwrap();
-                Err(unauthorized_response.into())
+                Err(unauthorized_response)
             }
         }
     }

@@ -109,7 +109,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
                 )))
                 .layer(TraceLayer::new(
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
-                )),
+                ))
         )
         .route("/metrics", get(appmetrics::scrape))
         .layer(Extension(db_pool))

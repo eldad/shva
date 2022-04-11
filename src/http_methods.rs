@@ -28,8 +28,6 @@ use tracing::{event, instrument, Level};
 use crate::db::ConnectionPool;
 use axum::extract::Extension;
 
-use rand;
-
 use crate::apperror::AppError;
 
 pub async fn default() -> String {
