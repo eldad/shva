@@ -73,6 +73,7 @@ pub async fn simulate_query_long(
     Ok(crate::db::simulate_query_long(pool).await?)
 }
 
-pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result<(), AppError> {
-    Ok(crate::db::ping(pool).await?)
+pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result<StatusCode, AppError> {
+    crate::db::ping(pool).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
