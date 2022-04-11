@@ -32,6 +32,9 @@ pub async fn default() -> String {
     "OK".to_string()
 }
 
+#[utoipa::path(get, path = "/monitoring/liveness", responses(
+    (status = 204, description = "service is alive")
+))]
 pub async fn liveness() -> StatusCode {
     StatusCode::NO_CONTENT
 }

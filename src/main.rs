@@ -32,6 +32,7 @@ mod db;
 mod http_methods;
 
 use std::{sync::Arc, time::Duration};
+use anyhow::anyhow;
 
 use axum::{
     error_handling::HandleErrorLayer,
@@ -60,6 +61,12 @@ use crate::config::Config;
 
 const SERVICE_NAME: &str = env!("CARGO_PKG_NAME");
 const DEFAULT_MAX_CONCURRENT_CONNECTIONS: usize = 3;
+
+use utoipa::OpenApi;
+
+#[derive(OpenApi)]
+#[openapi(handlers(http_methods::liveness))]
+struct ApiDoc;
 
 async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoResponse {
     if error.is::<Elapsed>() {
@@ -162,6 +169,13 @@ async fn service(config: Config) -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if let Some(command) = std::env::args().nth(1) {
+        return match command.as_str() {
+            "openapi" => Ok(generate_openapi()?),
+            _ => Err(anyhow!("unknown command {}", command)),
+        }
+    }
+
     let config = Config::read_default()?;
 
     crate::apptracing::setup_tracing(SERVICE_NAME)?;
@@ -180,4 +194,9 @@ async fn main() -> anyhow::Result<()> {
     info!("DONE shutdown_tracer_provider");
 
     result
+}
+
+fn generate_openapi() -> anyhow::Result<()> {
+    println!("{}", ApiDoc::openapi().to_pretty_json()?);
+    Ok(())
 }

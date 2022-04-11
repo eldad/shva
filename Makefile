@@ -30,3 +30,6 @@ fmt:
 	# Workaround for using unstable rustfmt features.
 	# When features are available in stable, move the options into rustfmt.toml and remove this.
 	cargo fmt -- --config imports_granularity=Crate,group_imports=StdExternalCrate
+
+openapi:
+	cargo --quiet run -- openapi
