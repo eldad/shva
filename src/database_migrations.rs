@@ -43,22 +43,15 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
         .filter(|migration| format!("{}", migration.prefix()) != "V")
         .map(|migration| format!("U{}", migration.version()))
         .collect();
-    if !unversioned.is_empty()
-    {
-        return Err(anyhow!(
-            "Unversioned migrations are prohibited: `{:?}`",
-            unversioned
-        ));
+    if !unversioned.is_empty() {
+        return Err(anyhow!("Unversioned migrations are prohibited: `{:?}`", unversioned));
     }
 
     // Use a BTreeMap to get the keys sorted already when checking for discontinuous versions.
-    let versions: BTreeMap<_, usize> =
-        migrations
-            .iter()
-            .fold(BTreeMap::new(), |mut map, migration| {
-                *map.entry(migration.version()).or_insert(0) += 1;
-                map
-            });
+    let versions: BTreeMap<_, usize> = migrations.iter().fold(BTreeMap::new(), |mut map, migration| {
+        *map.entry(migration.version()).or_insert(0) += 1;
+        map
+    });
 
     let duplicates: Vec<_> = versions
         .iter()
@@ -72,19 +65,16 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
         ));
     }
 
-    let (discontinuous, _) =
-        versions
-            .keys()
-            .fold((Vec::new(), None), |(mut gaps, last), &version| {
-                if let Some(last) = last {
-                    if last + 1 == version - 1 {
-                        gaps.push(format!("Missing V{}", last + 1));
-                    } else if last + 1 != version {
-                        gaps.push(format!("Gap V{}->V{}", last, version));
-                    }
-                }
-                (gaps, Some(version))
-            });
+    let (discontinuous, _) = versions.keys().fold((Vec::new(), None), |(mut gaps, last), &version| {
+        if let Some(last) = last {
+            if last + 1 == version - 1 {
+                gaps.push(format!("Missing V{}", last + 1));
+            } else if last + 1 != version {
+                gaps.push(format!("Gap V{}->V{}", last, version));
+            }
+        }
+        (gaps, Some(version))
+    });
     if !discontinuous.is_empty() {
         return Err(anyhow!(
             "Discontinuous versions of migrations are prohibited: `{:?}`",
@@ -95,16 +85,12 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) async fn refinery_migrate(
-    postgres_connection_string: &str,
-    dryrun: bool,
-) -> anyhow::Result<()> {
+pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: bool) -> anyhow::Result<()> {
     if !dryrun {
         verify_migration_versioning()?;
     }
 
-    let (mut client, connection) =
-        tokio_postgres::connect(postgres_connection_string, NoTls).await?;
+    let (mut client, connection) = tokio_postgres::connect(postgres_connection_string, NoTls).await?;
 
     tokio::spawn(async move {
         connection.await.unwrap();

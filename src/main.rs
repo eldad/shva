@@ -53,8 +53,8 @@ use tower::{
     ServiceBuilder,
 };
 use tower_http::{
-    auth::RequireAuthorizationLayer, classify::StatusInRangeAsFailures,
-    compression::CompressionLayer, trace::TraceLayer,
+    auth::RequireAuthorizationLayer, classify::StatusInRangeAsFailures, compression::CompressionLayer,
+    trace::TraceLayer,
 };
 use tracing::{debug, error, event, info, Level};
 
@@ -85,9 +85,7 @@ async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoRes
 // origin: https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs#L31-L55
 async fn shutdown_signal() {
     let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install CTRL-C handler");
+        signal::ctrl_c().await.expect("failed to install CTRL-C handler");
     };
 
     #[cfg(unix)]
@@ -119,8 +117,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
             .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
     ));
 
-    let auth_layer =
-        RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
+    let auth_layer = RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
 
     let monitoring = Router::new()
         .route("/liveness", get(http_methods::liveness))
@@ -202,16 +199,9 @@ async fn main() -> anyhow::Result<()> {
 async fn run_command(command: &str, config: Config) -> anyhow::Result<()> {
     match command {
         "openapi" => generate_openapi(),
-        "migrate" => {
-            database_migrations::refinery_migrate(
-                &config.database.postgres_connection_string,
-                false,
-            )
-            .await
-        }
+        "migrate" => database_migrations::refinery_migrate(&config.database.postgres_connection_string, false).await,
         "check-migrations" => {
-            database_migrations::refinery_migrate(&config.database.postgres_connection_string, true)
-                .await
+            database_migrations::refinery_migrate(&config.database.postgres_connection_string, true).await
         }
         "verify-migration-versioning" => database_migrations::verify_migration_versioning(),
         _ => Err(anyhow!("unknown command {}", command)),

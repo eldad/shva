@@ -35,10 +35,7 @@ use crate::config::DatabaseConfig;
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
 pub async fn setup_pool(database_config: &DatabaseConfig) -> anyhow::Result<ConnectionPool> {
-    let manager = PostgresConnectionManager::new_from_stringlike(
-        &database_config.postgres_connection_string,
-        NoTls,
-    )?;
+    let manager = PostgresConnectionManager::new_from_stringlike(&database_config.postgres_connection_string, NoTls)?;
 
     let mut pool_builder = Pool::builder();
     if let Some(connection_timeout) = database_config.connection_timeout_secs {
