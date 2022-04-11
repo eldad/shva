@@ -24,54 +24,82 @@
  */
 
 use std::collections::{BTreeMap, HashMap};
-use tokio_postgres::NoTls;
+
 use anyhow::anyhow;
+use tokio_postgres::NoTls;
 
 mod embedded {
     refinery::embed_migrations!();
 }
 
 pub fn verify_migration_versioning() -> anyhow::Result<()> {
+    // TODO: LOG all errors with error! and return something like Err(anyhow!("verification failed")).
+
     let runner = embedded::migrations::runner();
     let migrations = runner.get_migrations();
 
-    if let Some(migration) = migrations.iter().find(|migration| format!("{}", migration.prefix()) == "U") {
-        return Err(anyhow!("Unversioned migrations are prohibited: `{}`", migration.name()));
+    // TODO: show all offending migrations, reverse the check and verify prefix is "V".
+    if let Some(migration) = migrations
+        .iter()
+        .find(|migration| format!("{}", migration.prefix()) == "U")
+    {
+        return Err(anyhow!(
+            "Unversioned migrations are prohibited: `{}`",
+            migration.name()
+        ));
     }
 
     // Use a BTreeMap to get the keys sorted already when checking for discontinuous versions.
-    let versions: BTreeMap<_, usize> = migrations.iter().fold(BTreeMap::new(),
-        |mut map, migration| {
-            *map.entry(migration.version()).or_insert(0) += 1;
-            map
-        }
-    );
+    let versions: BTreeMap<_, usize> =
+        migrations
+            .iter()
+            .fold(BTreeMap::new(), |mut map, migration| {
+                *map.entry(migration.version()).or_insert(0) += 1;
+                map
+            });
 
-    let duplicates: Vec<_> = versions.iter().filter(|&(_, &frequency)| frequency > 1).map(|(k, _)| k).collect();
+    let duplicates: Vec<_> = versions
+        .iter()
+        .filter(|&(_, &frequency)| frequency > 1)
+        .map(|(k, _)| k)
+        .collect();
     if !duplicates.is_empty() {
-        return Err(anyhow!("Non-unique versions of migrations are prohibited. Duplicate versions: {:?}", duplicates))
+        return Err(anyhow!(
+            "Non-unique versions of migrations are prohibited. Duplicate versions: {:?}",
+            duplicates
+        ));
     }
 
-    let (discontinuous, _) = versions.keys().fold((Vec::new(), None), |(mut gaps, last), &version| {
-        if let Some(last) = last {
-            if last + 1 != version {
-                if last + 1 == version - 1 {
-                    gaps.push(format!("Missing V{}", last + 1));
-                } else {
-                    gaps.push(format!("Gap V{}->V{}", last, version));
+    let (discontinuous, _) =
+        versions
+            .keys()
+            .fold((Vec::new(), None), |(mut gaps, last), &version| {
+                if let Some(last) = last {
+                    if last + 1 == version - 1 {
+                        gaps.push(format!("Missing V{}", last + 1));
+                    } else if last + 1 != version {
+                        gaps.push(format!("Gap V{}->V{}", last, version));
+                    }
                 }
-            }
-        }
-        (gaps, Some(version))
-    });
+                (gaps, Some(version))
+            });
     if !discontinuous.is_empty() {
-        return Err(anyhow!("Discontinuous versions of migrations are prohibited: `{:?}`", discontinuous))
+        return Err(anyhow!(
+            "Discontinuous versions of migrations are prohibited: `{:?}`",
+            discontinuous
+        ));
     }
 
     Ok(())
 }
 
-pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: bool) -> anyhow::Result<()> {
+pub(crate) async fn refinery_migrate(
+    postgres_connection_string: &str,
+    dryrun: bool,
+) -> anyhow::Result<()> {
+    if !dryrun {
+        verify_migration_versioning()?;
+    }
 
     let (mut client, connection) =
         tokio_postgres::connect(postgres_connection_string, NoTls).await?;
@@ -82,7 +110,6 @@ pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: b
 
     let runner = embedded::migrations::runner();
 
-    println!("Applied migrations:");
     let mut applied_migrations = runner
         .get_applied_migrations_async(&mut client)
         .await?
@@ -90,7 +117,10 @@ pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: b
         .map(|migration| (migration.name().to_owned(), migration.applied_on().cloned()))
         .collect::<HashMap<String, _>>();
 
-    let migrations = runner.get_migrations();
+    println!("Applied migrations:");
+
+    let mut migrations: Vec<&refinery::Migration> = runner.get_migrations().iter().collect();
+    migrations.sort_by(|a, b| a.version().cmp(&b.version()));
     migrations.iter().for_each(|migration| {
         let applied_on = applied_migrations
             .remove(migration.name())
@@ -111,6 +141,8 @@ pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: b
         println!("Running migrations");
         runner.run_async(&mut client).await?;
         println!("Success!");
+    } else {
+        verify_migration_versioning()?;
     }
 
     Ok(())

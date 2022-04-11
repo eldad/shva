@@ -202,15 +202,17 @@ async fn main() -> anyhow::Result<()> {
 async fn run_command(command: &str, config: Config) -> anyhow::Result<()> {
     match command {
         "openapi" => generate_openapi(),
-        "migrate" =>
+        "migrate" => {
             database_migrations::refinery_migrate(
                 &config.database.postgres_connection_string,
                 false,
             )
-            .await,
-        "check-migrations" =>
+            .await
+        }
+        "check-migrations" => {
             database_migrations::refinery_migrate(&config.database.postgres_connection_string, true)
-                .await,
+                .await
+        }
         "verify-migration-versioning" => database_migrations::verify_migration_versioning(),
         _ => Err(anyhow!("unknown command {}", command)),
     }
