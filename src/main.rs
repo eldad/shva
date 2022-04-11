@@ -115,6 +115,11 @@ async fn service(config: Config) -> anyhow::Result<()> {
     let auth_layer =
         RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
 
+    let monitoring = Router::new()
+        .route("/liveness", get(http_methods::liveness))
+        .route("/readiness", get(http_methods::database_ping))
+        .route("/metrics", get(appmetrics::scrape));
+
     let app = Router::new()
         .route("/", get(http_methods::default))
         .route("/error", get(http_methods::error))
@@ -137,9 +142,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
                 ))
         )
-        .route("/monitoring/liveness", get(http_methods::liveness))
-        .route("/monitoring/readiness", get(http_methods::database_ping))
-        .route("/monitoring/metrics", get(appmetrics::scrape))
+        .nest("/monitoring", monitoring)
         .layer(Extension(db_pool))
         .layer(Extension(prometheus_handle))
         .layer(Extension(global_concurrency_semapshore))
