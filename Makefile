@@ -1,4 +1,4 @@
-.PHONY: run debug test run_optimized fmt openapi migrate
+.PHONY: run debug test run_optimized fmt openapi migrate check-migrations verify-migration-versioning
 
 export RUST_LOG := shva=info
 
@@ -36,3 +36,9 @@ openapi:
 
 migrate:
 	cargo --quiet run -- migrate
+
+check-migrations:
+	cargo --quiet run -- check-migrations
+
+verify-migration-versioning:
+	cargo --quiet run -- verify-migration-versioning
