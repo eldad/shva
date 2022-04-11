@@ -38,14 +38,16 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
     let runner = embedded::migrations::runner();
     let migrations = runner.get_migrations();
 
-    // TODO: show all offending migrations, reverse the check and verify prefix is "V".
-    if let Some(migration) = migrations
+    let unversioned: Vec<_> = migrations
         .iter()
-        .find(|migration| format!("{}", migration.prefix()) == "U")
+        .filter(|migration| format!("{}", migration.prefix()) != "V")
+        .map(|migration| format!("U{}", migration.version()))
+        .collect();
+    if !unversioned.is_empty()
     {
         return Err(anyhow!(
-            "Unversioned migrations are prohibited: `{}`",
-            migration.name()
+            "Unversioned migrations are prohibited: `{:?}`",
+            unversioned
         ));
     }
 
