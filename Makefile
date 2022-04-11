@@ -1,4 +1,4 @@
-.PHONY: run debug test run_optimized fmt
+.PHONY: run debug test run_optimized fmt openapi migrate
 
 export RUST_LOG := shva=info
 
@@ -33,3 +33,6 @@ fmt:
 
 openapi:
 	cargo --quiet run -- openapi
+
+migrate:
+	cargo --quiet run -- migrate
