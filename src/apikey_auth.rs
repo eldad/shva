@@ -23,9 +23,14 @@
  *
  */
 
-use axum::{body::BoxBody, http::Response};
-use hyper::{Request, StatusCode};
 use std::collections::HashMap;
+
+use axum::{
+    body::BoxBody,
+    http::{Response, StatusCode},
+    response::IntoResponse,
+};
+use hyper::Request;
 use tower_http::auth::AuthorizeRequest;
 
 #[derive(Clone)]
@@ -58,13 +63,7 @@ impl<B> AuthorizeRequest<B> for ApiKeyAuth {
                 request.extensions_mut().insert(user_id.clone());
                 Ok(())
             }
-            None => {
-                let unauthorized_response = Response::builder()
-                    .status(StatusCode::UNAUTHORIZED)
-                    .body(Default::default())
-                    .unwrap();
-                Err(unauthorized_response)
-            }
+            None => Err(StatusCode::UNAUTHORIZED.into_response()),
         }
     }
 }
