@@ -153,7 +153,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .layer(Extension(prometheus_handle))
         .layer(Extension(global_concurrency_semapshore))
         .layer(CompressionLayer::new())
-        // metrics tracking middleware should come after the service so it can also track errors from layer
+        // metrics tracking middleware should come after the service so it can also track errors from all layers
         .route_layer(middleware::from_fn(appmetrics::track_latency));
 
     let bind_address = &config.service.bind_address;
@@ -175,6 +175,8 @@ async fn main() -> anyhow::Result<()> {
             _ => Err(anyhow!("unknown command {}", command)),
         }
     }
+
+    // Invoked without a command: run the service
 
     let config = Config::read_default()?;
 
