@@ -23,12 +23,11 @@
  *
  */
 
-use tracing::error;
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use tracing::error;
 
 #[derive(Debug)]
 pub enum AppError {

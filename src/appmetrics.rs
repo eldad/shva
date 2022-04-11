@@ -23,7 +23,8 @@
  *
  */
 
-use crate::db::ConnectionPool;
+use std::sync::Arc;
+
 use axum::{
     extract::{Extension, MatchedPath},
     http::Request,
@@ -31,8 +32,9 @@ use axum::{
     response::IntoResponse,
 };
 use metrics_exporter_prometheus::PrometheusHandle;
-use std::sync::Arc;
 use tokio::{sync::Semaphore, time::Instant};
+
+use crate::db::ConnectionPool;
 
 pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {

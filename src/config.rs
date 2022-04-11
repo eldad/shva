@@ -23,11 +23,10 @@
  *
  */
 
-use anyhow::Result;
-use std::collections::HashMap;
+use std::{collections::HashMap, fs};
 
+use anyhow::Result;
 use serde::Deserialize;
-use std::fs;
 
 #[derive(Deserialize, Debug)]
 pub struct Config {

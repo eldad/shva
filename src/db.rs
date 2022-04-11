@@ -23,17 +23,14 @@
  *
  */
 
-use crate::config::DatabaseConfig;
-
 use std::time::Duration;
-
-use tracing::{event, instrument, Level};
 
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
+use tracing::{event, info, instrument, Level};
 
-use tracing::info;
+use crate::config::DatabaseConfig;
 
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 

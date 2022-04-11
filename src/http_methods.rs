@@ -23,13 +23,10 @@
  *
  */
 
+use axum::{extract::Extension, http::StatusCode};
 use tracing::{event, instrument, Level};
 
-use crate::db::ConnectionPool;
-use axum::extract::Extension;
-use axum::http::StatusCode;
-
-use crate::apperror::AppError;
+use crate::{apperror::AppError, db::ConnectionPool};
 
 pub async fn default() -> String {
     "OK".to_string()
@@ -75,7 +72,9 @@ pub async fn simulate_query_long(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result<StatusCode, AppError> {
+pub async fn database_ping(
+    Extension(pool): Extension<ConnectionPool>,
+) -> Result<StatusCode, AppError> {
     crate::db::ping(pool).await?;
     Ok(StatusCode::NO_CONTENT)
 }

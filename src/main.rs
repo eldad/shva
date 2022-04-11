@@ -31,6 +31,8 @@ mod config;
 mod db;
 mod http_methods;
 
+use std::{sync::Arc, time::Duration};
+
 use axum::{
     error_handling::HandleErrorLayer,
     extract::Extension,
@@ -41,20 +43,17 @@ use axum::{
     BoxError, Router,
 };
 use metrics_exporter_prometheus::PrometheusBuilder;
-use std::{sync::Arc, time::Duration};
-use tower_http::{
-    classify::StatusInRangeAsFailures, compression::CompressionLayer, trace::TraceLayer,
-};
-
-use tower::{limit::GlobalConcurrencyLimitLayer, load_shed::LoadShedLayer};
-
 use tokio::{signal, sync::Semaphore};
 use tower::{
-    load_shed::error::Overloaded,
+    limit::GlobalConcurrencyLimitLayer,
+    load_shed::{error::Overloaded, LoadShedLayer},
     timeout::{error::Elapsed, TimeoutLayer},
     ServiceBuilder,
 };
-use tower_http::auth::RequireAuthorizationLayer;
+use tower_http::{
+    auth::RequireAuthorizationLayer, classify::StatusInRangeAsFailures,
+    compression::CompressionLayer, trace::TraceLayer,
+};
 use tracing::{debug, error, event, info, Level};
 
 use crate::config::Config;
@@ -84,7 +83,7 @@ async fn shutdown_signal() {
     };
 
     #[cfg(unix)]
-        let terminate = async {
+    let terminate = async {
         signal::unix::signal(signal::unix::SignalKind::terminate())
             .expect("failed to install SIGTERM handler")
             .recv()
@@ -92,7 +91,7 @@ async fn shutdown_signal() {
     };
 
     #[cfg(not(unix))]
-        let terminate = std::future::pending::<()>();
+    let terminate = std::future::pending::<()>();
 
     let signal = tokio::select! {
         _ = ctrl_c => "CTRL-C",
@@ -140,7 +139,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
                 )))
                 .layer(TraceLayer::new(
                     StatusInRangeAsFailures::new(400..=599).into_make_classifier(),
-                ))
+                )),
         )
         .nest("/monitoring", monitoring)
         .layer(Extension(db_pool))
