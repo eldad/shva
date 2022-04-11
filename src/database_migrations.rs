@@ -27,16 +27,17 @@ use std::collections::{BTreeMap, HashMap};
 
 use anyhow::anyhow;
 use tokio_postgres::NoTls;
+use tracing::error;
 
 mod embedded {
     refinery::embed_migrations!();
 }
 
 pub fn verify_migration_versioning() -> anyhow::Result<()> {
-    // TODO: LOG all errors with error! and return something like Err(anyhow!("verification failed")).
-
     let runner = embedded::migrations::runner();
     let migrations = runner.get_migrations();
+
+    let mut is_error = false;
 
     let unversioned: Vec<_> = migrations
         .iter()
@@ -44,7 +45,8 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
         .map(|migration| format!("U{}", migration.version()))
         .collect();
     if !unversioned.is_empty() {
-        return Err(anyhow!("Unversioned migrations are prohibited: `{:?}`", unversioned));
+        is_error = true;
+        error!("Unversioned migrations are prohibited: `{:?}`", unversioned);
     }
 
     // Use a BTreeMap to get the keys sorted already when checking for discontinuous versions.
@@ -59,10 +61,11 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
         .map(|(k, _)| k)
         .collect();
     if !duplicates.is_empty() {
-        return Err(anyhow!(
+        is_error = true;
+        error!(
             "Non-unique versions of migrations are prohibited. Duplicate versions: {:?}",
             duplicates
-        ));
+        );
     }
 
     let (discontinuous, _) = versions.keys().fold((Vec::new(), None), |(mut gaps, last), &version| {
@@ -76,13 +79,17 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
         (gaps, Some(version))
     });
     if !discontinuous.is_empty() {
-        return Err(anyhow!(
+        is_error = true;
+        error!(
             "Discontinuous versions of migrations are prohibited: `{:?}`",
             discontinuous
-        ));
+        );
     }
 
-    Ok(())
+    match is_error {
+        true => Err(anyhow!("migration versioning violations detected")),
+        false => Ok(()),
+    }
 }
 
 pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: bool) -> anyhow::Result<()> {

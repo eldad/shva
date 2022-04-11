@@ -47,3 +47,17 @@ pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
 
     Ok(())
 }
+
+pub fn setup_basic_logging() -> anyhow::Result<()> {
+    let format = fmt::format()
+        .without_time()
+        .with_level(true)
+        .with_target(true)
+        .compact();
+
+    tracing_subscriber::fmt()
+        .event_format(format)
+        .init();
+
+    Ok(())
+}

@@ -197,6 +197,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn run_command(command: &str, config: Config) -> anyhow::Result<()> {
+    crate::apptracing::setup_basic_logging()?;
+
     match command {
         "openapi" => generate_openapi(),
         "migrate" => database_migrations::refinery_migrate(&config.database.postgres_connection_string, false).await,
