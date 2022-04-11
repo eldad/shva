@@ -75,6 +75,33 @@ async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoRes
     }
 }
 
+// origin: https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs#L31-L55
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install CTRL-C handler");
+    };
+
+    #[cfg(unix)]
+        let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+
+    let signal = tokio::select! {
+        _ = ctrl_c => "CTRL-C",
+        _ = terminate => "SIGTERM",
+    };
+
+    info!("Starting graceful shutdown: received {}", signal);
+}
+
 async fn service(config: Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
     let prometheus_handle = Arc::new(PrometheusBuilder::new().install_recorder()?);
@@ -151,30 +178,4 @@ async fn main() -> anyhow::Result<()> {
     info!("DONE shutdown_tracer_provider");
 
     result
-}
-
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install CTRL-C handler"); // TODO: remove expect?
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install SIGTERM handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    let signal = tokio::select! {
-        _ = ctrl_c => "CTRL-C",
-        _ = terminate => "SIGTERM",
-    };
-
-    info!("Starting graceful shutdown: received {}", signal);
 }
