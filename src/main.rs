@@ -31,6 +31,7 @@ mod config;
 mod database_migrations;
 mod db;
 mod http_methods;
+mod shutdown_signal;
 
 use std::{sync::Arc, time::Duration};
 
@@ -45,7 +46,7 @@ use axum::{
     BoxError, Router,
 };
 use metrics_exporter_prometheus::PrometheusBuilder;
-use tokio::{signal, sync::Semaphore};
+use tokio::sync::Semaphore;
 use tower::{
     limit::GlobalConcurrencyLimitLayer,
     load_shed::{error::Overloaded, LoadShedLayer},
@@ -80,31 +81,6 @@ async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoRes
         event!(Level::ERROR, %method, %uri, %error, "internal error");
         (StatusCode::INTERNAL_SERVER_ERROR, "error")
     }
-}
-
-// origin: https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs#L31-L55
-async fn shutdown_signal() {
-    let ctrl_c = async {
-        signal::ctrl_c().await.expect("failed to install CTRL-C handler");
-    };
-
-    #[cfg(unix)]
-    let terminate = async {
-        signal::unix::signal(signal::unix::SignalKind::terminate())
-            .expect("failed to install SIGTERM handler")
-            .recv()
-            .await;
-    };
-
-    #[cfg(not(unix))]
-    let terminate = std::future::pending::<()>();
-
-    let signal = tokio::select! {
-        _ = ctrl_c => "CTRL-C",
-        _ = terminate => "SIGTERM",
-    };
-
-    info!("Starting graceful shutdown: received {}", signal);
 }
 
 async fn service(config: Config) -> anyhow::Result<()> {
@@ -159,7 +135,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
     info!("Binding service to {}", bind_address);
     axum::Server::bind(&bind_address.parse()?)
         .serve(app.into_make_service())
-        .with_graceful_shutdown(shutdown_signal())
+        .with_graceful_shutdown(shutdown_signal::shutdown_signal())
         .await?;
 
     Ok(())
