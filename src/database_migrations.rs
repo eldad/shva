@@ -115,7 +115,7 @@ pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: b
     println!("Applied migrations:");
 
     let mut migrations: Vec<&refinery::Migration> = runner.get_migrations().iter().collect();
-    migrations.sort_by(|a, b| a.version().cmp(&b.version()));
+    migrations.sort_by_key(|a| a.version());
     migrations.iter().for_each(|migration| {
         let applied_on = applied_migrations
             .remove(migration.name())
