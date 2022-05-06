@@ -67,18 +67,21 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     response
 }
 
+fn update_global_concurrency_metric_gauge(semaphore: Arc<Semaphore>) {
+    let global_concurrency_available_permits = semaphore.available_permits();
+    metrics::gauge!(
+        "global_concurrency_available_permits",
+        global_concurrency_available_permits as f64
+    );
+}
+
 pub async fn scrape(
     Extension(prometheus_handle): Extension<Arc<PrometheusHandle>>,
     Extension(pool): Extension<ConnectionPool>,
     Extension(global_concurrency_semapshore): Extension<Arc<Semaphore>>,
 ) -> String {
     crate::db::update_metric_gauges(&pool);
-
-    let global_concurrency_available_permits = global_concurrency_semapshore.available_permits();
-    metrics::gauge!(
-        "global_concurrency_available_permits",
-        global_concurrency_available_permits as f64
-    );
+    update_global_concurrency_metric_gauge(global_concurrency_semapshore);
 
     prometheus_handle.render()
 }
