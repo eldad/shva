@@ -49,8 +49,8 @@ impl ApiKeyAuth {
     }
 }
 
-#[derive(Debug)]
-struct UserId(String);
+#[derive(Debug, Clone)]
+pub struct UserId(pub String);
 
 impl<B> AuthorizeRequest<B> for ApiKeyAuth {
     type ResponseBody = BoxBody;

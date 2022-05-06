@@ -28,7 +28,7 @@ By rendering inside axum, one can use the tower `Extension` facility to track th
   - [x] No-content liveness check
 - [x] Logging and tracing, export to Jaeger
 - [x] Simple config-file based API Key authentication
-  - [ ] Log metrics with associated api key user ID
+  - [x] Log metrics with associated api key user ID
 - [x] [Database migrations](https://github.com/rust-db/refinery)
 - [x] OpenAPI
 

@@ -105,6 +105,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .route("/random_error", get(http_methods::random_error))
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
+        .layer(middleware::from_fn(appmetrics::auth_snooper))
         .layer(auth_layer)
         .layer(
             ServiceBuilder::new()

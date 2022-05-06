@@ -35,6 +35,7 @@ use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle, Matcher};
 use tokio::{sync::Semaphore, time::Instant};
 
 use crate::db::ConnectionPool;
+use crate::apikey_auth::UserId;
 
 const METRIC_HTTP_REQUEST_DURATION: &str = "http_request_duration_seconds";
 const METRIC_HTTP_REQUEST_DURATION_BUCKETS: &[f64; 4] = &[0.1, 0.25, 0.5, 1.0];
@@ -56,13 +57,31 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     // Measure latency
     let now = Instant::now();
     let response = next.run(req).await;
+
+    let user_id = match response.extensions().get::<UserId>() {
+        Some(UserId(user_id)) => user_id.clone(),
+        None => "UNAUTHORIZED".into(),
+    };
+
     let duration = now.elapsed().as_secs_f64();
 
     let code = response.status().as_u16().to_string();
 
-    let labels = [("method", method), ("path", path), ("code", code)];
+    let labels = [("method", method), ("path", path), ("code", code), ("userid", user_id)];
 
     metrics::histogram!(METRIC_HTTP_REQUEST_DURATION, duration, &labels);
+
+    response
+}
+
+pub async fn auth_snooper<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+    let maybe_user_id = req.extensions().get::<UserId>().cloned();
+
+    let mut response = next.run(req).await;
+
+    if let Some(user_id) = maybe_user_id {
+        response.extensions_mut().insert(user_id);
+    }
 
     response
 }
