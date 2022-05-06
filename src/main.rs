@@ -45,7 +45,6 @@ use axum::{
     routing::get,
     BoxError, Router,
 };
-use metrics_exporter_prometheus::PrometheusBuilder;
 use tokio::sync::Semaphore;
 use tower::{
     limit::GlobalConcurrencyLimitLayer,
@@ -85,7 +84,7 @@ async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoRes
 
 async fn service(config: Config) -> anyhow::Result<()> {
     let db_pool = crate::db::setup_pool(&config.database).await?;
-    let prometheus_handle = Arc::new(PrometheusBuilder::new().install_recorder()?);
+    let prometheus_handle = Arc::new(appmetrics::install_prometheus()?);
     let global_concurrency_semapshore = Arc::new(Semaphore::new(
         config
             .service
