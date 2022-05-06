@@ -72,9 +72,7 @@ pub async fn scrape(
     Extension(pool): Extension<ConnectionPool>,
     Extension(global_concurrency_semapshore): Extension<Arc<Semaphore>>,
 ) -> String {
-    // Get all current gauge metrics
-    let pool_state = pool.state();
-    track_database_pool_state(pool_state.connections, pool_state.idle_connections);
+    crate::db::update_metric_gauges(&pool);
 
     let global_concurrency_available_permits = global_concurrency_semapshore.available_permits();
     metrics::gauge!(
@@ -83,9 +81,4 @@ pub async fn scrape(
     );
 
     prometheus_handle.render()
-}
-
-fn track_database_pool_state(connections: u32, idle_connections: u32) {
-    metrics::gauge!("database_pool_connections", connections as f64);
-    metrics::gauge!("database_pool_idle_connections", idle_connections as f64);
 }

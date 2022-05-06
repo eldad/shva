@@ -34,6 +34,13 @@ use crate::config::DatabaseConfig;
 
 pub type ConnectionPool = Pool<PostgresConnectionManager<NoTls>>;
 
+pub fn update_metric_gauges(pool: &ConnectionPool) {
+    let pool_state = pool.state();
+
+    metrics::gauge!("database_pool_connections", pool_state.connections as f64);
+    metrics::gauge!("database_pool_idle_connections", pool_state.idle_connections as f64);
+}
+
 pub async fn setup_pool(database_config: &DatabaseConfig) -> anyhow::Result<ConnectionPool> {
     let manager = PostgresConnectionManager::new_from_stringlike(&database_config.postgres_connection_string, NoTls)?;
 
