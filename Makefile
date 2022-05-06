@@ -18,7 +18,10 @@ debug:
 	RUST_LOG=debug cargo run
 
 test:
-	$(CURL) $(SERVICE_BASE_URL)/metrics
+	# 404
+	$(CURL) $(SERVICE_BASE_URL)/no-such-page
+
+	$(CURL) $(SERVICE_BASE_URL)/monitoring/metrics
 
 	$(CURL) $(SERVICE_BASE_URL)/
 	$(CURL) $(SERVICE_BASE_URL)/error
