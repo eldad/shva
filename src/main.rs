@@ -127,7 +127,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .layer(Extension(global_concurrency_semapshore))
         .layer(CompressionLayer::new())
         // metrics tracking middleware should come after the service so it can also track errors from all layers
-        .route_layer(middleware::from_fn(appmetrics::track_latency));
+        .layer(middleware::from_fn(appmetrics::track_latency));
 
     let bind_address = &config.service.bind_address;
 
