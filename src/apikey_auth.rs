@@ -49,6 +49,9 @@ impl ApiKeyAuth {
     }
 }
 
+#[derive(Debug)]
+struct UserId(String);
+
 impl<B> AuthorizeRequest<B> for ApiKeyAuth {
     type ResponseBody = BoxBody;
 
@@ -57,10 +60,11 @@ impl<B> AuthorizeRequest<B> for ApiKeyAuth {
             .headers()
             .get(APIKEY_HEADER)
             .and_then(|key| key.to_str().ok())
-            .and_then(|key| self.apikeys.get(key));
+            .and_then(|key| self.apikeys.get(key))
+            .map(|user_id| UserId(user_id.clone()));
         match user_id {
             Some(user_id) => {
-                request.extensions_mut().insert(user_id.clone());
+                request.extensions_mut().insert(user_id);
                 Ok(())
             }
             None => Err(StatusCode::UNAUTHORIZED.into_response()),
