@@ -55,9 +55,7 @@ pub fn setup_basic_logging() -> anyhow::Result<()> {
         .with_target(true)
         .compact();
 
-    tracing_subscriber::fmt()
-        .event_format(format)
-        .init();
+    tracing_subscriber::fmt().event_format(format).init();
 
     Ok(())
 }
