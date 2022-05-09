@@ -20,21 +20,23 @@ use tracing::error;
 
 pub struct Cbor<T>(pub T);
 
-#[async_trait]
-impl<B, T> FromRequest<B> for Cbor<T>
-where
-    T: DeserializeOwned,
-    B: HttpBody + Send,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
-{
-    type Rejection = crate::apperror::AppError;
+impl<T> Deref for Cbor<T> {
+    type Target = T;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        assert_cbor_content_type(req)?;
-        let bytes = Bytes::from_request(req).await?;
-        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
-        Ok(Cbor(value))
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Cbor<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> From<T> for Cbor<T> {
+    fn from(inner: T) -> Self {
+        Self(inner)
     }
 }
 
@@ -53,23 +55,21 @@ fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> anyhow::Result<()> {
     }
 }
 
-impl<T> Deref for Cbor<T> {
-    type Target = T;
+#[async_trait]
+impl<B, T> FromRequest<B> for Cbor<T>
+where
+    T: DeserializeOwned,
+    B: HttpBody + Send,
+    B::Data: Send,
+    B::Error: Into<BoxError>,
+{
+    type Rejection = crate::apperror::AppError;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for Cbor<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<T> From<T> for Cbor<T> {
-    fn from(inner: T) -> Self {
-        Self(inner)
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        assert_cbor_content_type(req)?;
+        let bytes = Bytes::from_request(req).await?;
+        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
+        Ok(Cbor(value))
     }
 }
 
