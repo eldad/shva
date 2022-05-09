@@ -36,3 +36,4 @@ refinery = { version = "0.8.4", features = ["tokio-postgres"] }
 ciborium = "0.2.0"
 async-trait = "0.1.53"
 mime = "0.3.16"
+thiserror = "1.0.31"

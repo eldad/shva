@@ -29,15 +29,28 @@ use axum::{
 };
 use tracing::error;
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum AppError {
+    #[error("doomed to fail")]
     Doomed,
+    #[error("just plain unlucky")]
     Unlucky,
+    #[error("unforseen consequences")]
     Unforseen,
+    #[error("too little too late")]
     TooLittleTooLate,
+    #[error("oops")]
     Oops,
+    #[error("strange! this should never happen...")]
     ShouldNeverHappen,
-    GenericError(String, String),
+    #[error("bytes rejection")]
+    BytesRejection(#[from] axum::extract::rejection::BytesRejection),
+    #[error("Ciborium IO error")]
+    CiboriumIOError(#[from] ciborium::de::Error<std::io::Error>),
+    #[error(transparent)]
+    GenericError(#[from] anyhow::Error),
 }
 
 impl IntoResponse for AppError {
@@ -47,8 +60,8 @@ impl IntoResponse for AppError {
             AppError::Unlucky => StatusCode::MISDIRECTED_REQUEST,
             AppError::TooLittleTooLate => StatusCode::EXPECTATION_FAILED,
             AppError::Oops => StatusCode::IM_A_TEAPOT,
-            AppError::GenericError(type_, message) => {
-                error!("Internal error [{}]: `{}`", type_, message);
+            AppError::GenericError(err) => {
+                error!(error = %err, "Internal error: `{}`", err);
                 StatusCode::INTERNAL_SERVER_ERROR
             }
             _ => StatusCode::NOT_IMPLEMENTED,
@@ -62,17 +75,3 @@ impl IntoResponse for AppError {
         (status_code, body).into_response()
     }
 }
-
-macro_rules! apperror_from {
-    ($err:path) => {
-        impl From<$err> for AppError {
-            fn from(e: $err) -> Self {
-                AppError::GenericError(stringify!($err).to_string(), e.to_string())
-            }
-        }
-    };
-}
-
-apperror_from!(anyhow::Error);
-apperror_from!(axum::extract::rejection::BytesRejection);
-apperror_from!(ciborium::de::Error<std::io::Error>);
