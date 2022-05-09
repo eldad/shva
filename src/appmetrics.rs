@@ -31,18 +31,20 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use metrics_exporter_prometheus::{PrometheusBuilder, PrometheusHandle, Matcher};
+use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
 use tokio::{sync::Semaphore, time::Instant};
 
-use crate::db::ConnectionPool;
-use crate::apikey_auth::UserId;
+use crate::{apikey_auth::UserId, db::ConnectionPool};
 
 const METRIC_HTTP_REQUEST_DURATION: &str = "http_request_duration_seconds";
 const METRIC_HTTP_REQUEST_DURATION_BUCKETS: &[f64; 4] = &[0.1, 0.25, 0.5, 1.0];
 
 pub(crate) fn install_prometheus() -> Result<PrometheusHandle, metrics_exporter_prometheus::BuildError> {
     PrometheusBuilder::new()
-        .set_buckets_for_metric(Matcher::Full(METRIC_HTTP_REQUEST_DURATION.into()), METRIC_HTTP_REQUEST_DURATION_BUCKETS)?
+        .set_buckets_for_metric(
+            Matcher::Full(METRIC_HTTP_REQUEST_DURATION.into()),
+            METRIC_HTTP_REQUEST_DURATION_BUCKETS,
+        )?
         .install_recorder()
 }
 
