@@ -74,3 +74,5 @@ macro_rules! apperror_from {
 }
 
 apperror_from!(anyhow::Error);
+apperror_from!(axum::extract::rejection::BytesRejection);
+apperror_from!(ciborium::de::Error<std::io::Error>);

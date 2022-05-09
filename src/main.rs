@@ -23,6 +23,8 @@
  *
  */
 
+extern crate core;
+
 mod apikey_auth;
 mod apperror;
 mod appmetrics;
@@ -32,6 +34,8 @@ mod database_migrations;
 mod db;
 mod http_methods;
 mod shutdown_signal;
+
+mod cbor;
 
 use std::{sync::Arc, time::Duration};
 
@@ -105,6 +109,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .route("/random-error", get(http_methods::random_error))
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
+        .route("/cbor-message/:id", get(http_methods::cbor_message))
         .layer(middleware::from_fn(appmetrics::auth_snooper))
         .layer(auth_layer)
         .layer(

@@ -23,10 +23,14 @@
  *
  */
 
+use serde::Serialize;
+
 use axum::{extract::Extension, http::StatusCode};
+use axum::extract::Path;
 use tracing::{event, instrument, Level};
 
 use crate::{apperror::AppError, db::ConnectionPool};
+use crate::cbor::Cbor;
 
 pub async fn default() -> String {
     "OK".to_string()
@@ -74,4 +78,19 @@ pub async fn simulate_query_long(Extension(pool): Extension<ConnectionPool>) -> 
 pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result<StatusCode, AppError> {
     crate::db::ping(pool).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Serialize)]
+pub struct MessageEntity {
+    pub id: usize,
+    pub score: f64,
+    pub message: String,
+}
+
+pub async fn cbor_message(Path(id): Path<usize>) -> Cbor<MessageEntity> {
+    Cbor(MessageEntity {
+        id,
+        score: 3.91415,
+        message: "I see a boar".to_string(),
+    })
 }
