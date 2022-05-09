@@ -23,14 +23,14 @@
  *
  */
 
-use serde::{Serialize, Deserialize};
-
-use axum::{extract::Extension, http::StatusCode};
-use axum::extract::Path;
+use axum::{
+    extract::{Extension, Path},
+    http::StatusCode,
+};
+use serde::{Deserialize, Serialize};
 use tracing::{event, instrument, Level};
 
-use crate::{apperror::AppError, db::ConnectionPool};
-use crate::cbor::Cbor;
+use crate::{apperror::AppError, cbor::Cbor, db::ConnectionPool};
 
 pub async fn default() -> String {
     "OK".to_string()

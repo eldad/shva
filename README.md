@@ -31,6 +31,7 @@ By rendering inside axum, one can use the tower `Extension` facility to track th
   - [x] Log metrics with associated api key user ID
 - [x] [Database migrations](https://github.com/rust-db/refinery)
 - [x] OpenAPI
+- [x] Custom extractor and response serializer for CBOR (using `ciborium`)
 
 ### Concurrency control and load shedding
 

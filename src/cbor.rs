@@ -9,6 +9,7 @@ use axum::{
     BoxError,
 };
 use serde::{de::DeserializeOwned, Serialize};
+use tracing::error;
 
 /// CBOR Extractor / Response.
 /// [RFC8949](https://datatracker.ietf.org/doc/html/rfc8949)
@@ -83,24 +84,23 @@ where
         let mut buf: Vec<u8> = Vec::new();
         let result = ciborium::ser::into_writer(&self.0, &mut buf);
 
-        match result {
-            Err(err) => (
+        if let Err(err) = result {
+            error!(error = %err, "Error rendering response as CBOR");
+            return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 [(
                     header::CONTENT_TYPE,
                     HeaderValue::from_static(mime::TEXT_PLAIN_UTF_8.as_ref()),
                 )],
-                err.to_string(),
+                "Error rendering response as CBOR",
             )
-                .into_response(),
-            Ok(()) => (
-                [(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_static(MIME_APPLICATION_CBOR),
-                )],
-                buf,
-            )
-                .into_response(),
+                .into_response();
         }
+
+        (
+            [(header::CONTENT_TYPE, HeaderValue::from_static(MIME_APPLICATION_CBOR))],
+            buf,
+        )
+            .into_response()
     }
 }
