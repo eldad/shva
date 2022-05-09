@@ -26,7 +26,7 @@ test:
 	$(CURL) $(SERVICE_BASE_URL)/
 	$(CURL) $(SERVICE_BASE_URL)/error
 
-	$(CURL) $(SERVICE_BASE_URL)/random_error
+	$(CURL) $(SERVICE_BASE_URL)/random-error
 
 	$(CURL) $(SERVICE_BASE_URL)/query/short
 	$(CURL) $(SERVICE_BASE_URL)/query/long
