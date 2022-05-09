@@ -10,6 +10,7 @@ use axum::{
 };
 use serde::{de::DeserializeOwned, Serialize};
 use tracing::error;
+use thiserror::Error;
 
 /// CBOR Extractor / Response.
 /// [RFC8949](https://datatracker.ietf.org/doc/html/rfc8949)
@@ -40,18 +41,18 @@ impl<T> From<T> for Cbor<T> {
     }
 }
 
-fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> anyhow::Result<()> {
+fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejection> {
     let mime = req
         .headers()
         .get(header::CONTENT_TYPE)
-        .ok_or_else(|| anyhow::anyhow!("missing content type header"))?
-        .to_str()?
-        .parse::<mime::Mime>()?;
+        .ok_or(CborRejection::ContentTypeMissing)?
+        .to_str().map_err(|_| CborRejection::ContentTypeInvalid)?
+        .parse::<mime::Mime>().map_err(|_| CborRejection::ContentTypeInvalid)?;
 
     if mime.type_() == "application" && mime.subtype() == "cbor" {
         Ok(())
     } else {
-        Err(anyhow::anyhow!("expected application/cbor content-type"))
+        Err(CborRejection::ContentTypeInvalid)
     }
 }
 
@@ -63,7 +64,7 @@ where
     B::Data: Send,
     B::Error: Into<BoxError>,
 {
-    type Rejection = crate::apperror::AppError;
+    type Rejection = CborRejection;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
         assert_cbor_content_type(req)?;
@@ -102,5 +103,33 @@ where
             buf,
         )
             .into_response()
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum CborRejection {
+    #[error("content type is missing")]
+    ContentTypeMissing,
+    #[error("content type is not application/cbor")]
+    ContentTypeInvalid,
+    #[error("failed to buffer request body")]
+    BytesRejection(#[from] axum::extract::rejection::BytesRejection),
+    #[error("Ciborium IO error")]
+    CiboriumIOError(#[from] ciborium::de::Error<std::io::Error>),
+}
+
+impl CborRejection {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::ContentTypeMissing|Self::ContentTypeInvalid => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            Self::CiboriumIOError(_) => StatusCode::BAD_REQUEST,
+            Self::BytesRejection(_) => StatusCode::PAYLOAD_TOO_LARGE,
+        }
+    }
+}
+
+impl IntoResponse for CborRejection {
+    fn into_response(self) -> Response {
+        self.status_code().into_response()
     }
 }

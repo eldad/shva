@@ -45,10 +45,6 @@ pub enum AppError {
     Oops,
     #[error("strange! this should never happen...")]
     ShouldNeverHappen,
-    #[error("bytes rejection")]
-    BytesRejection(#[from] axum::extract::rejection::BytesRejection),
-    #[error("Ciborium IO error")]
-    CiboriumIOError(#[from] ciborium::de::Error<std::io::Error>),
     #[error(transparent)]
     GenericError(#[from] anyhow::Error),
 }
