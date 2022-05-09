@@ -48,3 +48,6 @@ check-migrations:
 
 verify-migration-versioning:
 	cargo --quiet run -- verify-migration-versioning
+
+doc:
+	cargo doc -p shva --no-deps --open
