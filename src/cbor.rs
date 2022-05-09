@@ -56,6 +56,23 @@ fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejectio
     }
 }
 
+impl<T> Cbor<T>
+    where
+        T: DeserializeOwned,
+{
+    async fn try_from_request<B>(req: &mut RequestParts<B>) -> Result<Self, CborRejection>
+        where
+            B: HttpBody + Send,
+            B::Data: Send,
+            B::Error: Into<BoxError>,
+    {
+        assert_cbor_content_type(req)?;
+        let bytes = Bytes::from_request(req).await?;
+        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
+        Ok(Cbor(value))
+    }
+}
+
 #[async_trait]
 impl<B, T> FromRequest<B> for Cbor<T>
 where
@@ -67,10 +84,13 @@ where
     type Rejection = CborRejection;
 
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        assert_cbor_content_type(req)?;
-        let bytes = Bytes::from_request(req).await?;
-        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
-        Ok(Cbor(value))
+        let response = Self::try_from_request(req).await;
+
+        if let Err(err) = &response {
+            error!(error = %err, "error extracting cbor data")
+        }
+
+        response
     }
 }
 
@@ -112,9 +132,9 @@ pub enum CborRejection {
     ContentTypeMissing,
     #[error("content type is not application/cbor")]
     ContentTypeInvalid,
-    #[error("failed to buffer request body")]
+    #[error("failed to buffer request body: {0}")]
     BytesRejection(#[from] axum::extract::rejection::BytesRejection),
-    #[error("Ciborium IO error")]
+    #[error("failed to deserialize: {0}")]
     CiboriumIOError(#[from] ciborium::de::Error<std::io::Error>),
 }
 
@@ -122,8 +142,13 @@ impl CborRejection {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::ContentTypeMissing|Self::ContentTypeInvalid => StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            Self::CiboriumIOError(_) => StatusCode::BAD_REQUEST,
             Self::BytesRejection(_) => StatusCode::PAYLOAD_TOO_LARGE,
+            Self::CiboriumIOError(err) => match err {
+                // CBOR can be parsed, but the result does not align with the entity
+                ciborium::de::Error::Semantic(_, _) => StatusCode::UNPROCESSABLE_ENTITY,
+                // All other errors are client errors (syntax, I/O)
+                _ => StatusCode::BAD_REQUEST,
+            }
         }
     }
 }
