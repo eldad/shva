@@ -23,7 +23,7 @@
  *
  */
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use axum::{extract::Extension, http::StatusCode};
 use axum::extract::Path;
@@ -80,17 +80,25 @@ pub async fn database_ping(Extension(pool): Extension<ConnectionPool>) -> Result
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct MessageEntity {
     pub id: usize,
     pub score: f64,
-    pub message: String,
+    pub message: Option<String>,
 }
 
 pub async fn cbor_message(Path(id): Path<usize>) -> Cbor<MessageEntity> {
     Cbor(MessageEntity {
         id,
         score: 3.91415,
-        message: "I see a boar".to_string(),
+        message: Some("I see a boar".to_string()),
+    })
+}
+
+pub async fn cbor_ping(Path(id): Path<usize>, Cbor(entity): Cbor<MessageEntity>) -> Cbor<MessageEntity> {
+    Cbor(MessageEntity {
+        id: entity.id + id,
+        score: 3.91415,
+        message: None,
     })
 }

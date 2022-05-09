@@ -46,7 +46,7 @@ use axum::{
     http::{Method, StatusCode, Uri},
     middleware,
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     BoxError, Router,
 };
 use tokio::sync::Semaphore;
@@ -110,6 +110,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
         .route("/cbor-message/:id", get(http_methods::cbor_message))
+        .route("/cbor-ping/:id", post(http_methods::cbor_ping))
         .layer(middleware::from_fn(appmetrics::auth_snooper))
         .layer(auth_layer)
         .layer(
