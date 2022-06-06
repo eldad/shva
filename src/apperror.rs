@@ -27,9 +27,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use tracing::error;
-
 use thiserror::Error;
+use tracing::error;
 
 #[derive(Debug, Error)]
 pub enum AppError {
