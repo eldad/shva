@@ -9,8 +9,8 @@ use axum::{
     BoxError,
 };
 use serde::{de::DeserializeOwned, Serialize};
-use tracing::error;
 use thiserror::Error;
+use tracing::error;
 
 /// CBOR Extractor / Response.
 /// [RFC8949](https://datatracker.ietf.org/doc/html/rfc8949)
@@ -46,8 +46,10 @@ fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejectio
         .headers()
         .get(header::CONTENT_TYPE)
         .ok_or(CborRejection::ContentTypeMissing)?
-        .to_str().map_err(|_| CborRejection::ContentTypeInvalid)?
-        .parse::<mime::Mime>().map_err(|_| CborRejection::ContentTypeInvalid)?;
+        .to_str()
+        .map_err(|_| CborRejection::ContentTypeInvalid)?
+        .parse::<mime::Mime>()
+        .map_err(|_| CborRejection::ContentTypeInvalid)?;
 
     if mime.type_() == "application" && mime.subtype() == "cbor" {
         Ok(())
@@ -57,14 +59,14 @@ fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejectio
 }
 
 impl<T> Cbor<T>
-    where
-        T: DeserializeOwned,
+where
+    T: DeserializeOwned,
 {
     async fn try_from_request<B>(req: &mut RequestParts<B>) -> Result<Self, CborRejection>
-        where
-            B: HttpBody + Send,
-            B::Data: Send,
-            B::Error: Into<BoxError>,
+    where
+        B: HttpBody + Send,
+        B::Data: Send,
+        B::Error: Into<BoxError>,
     {
         assert_cbor_content_type(req)?;
         let bytes = Bytes::from_request(req).await?;
@@ -141,14 +143,14 @@ pub enum CborRejection {
 impl CborRejection {
     fn status_code(&self) -> StatusCode {
         match self {
-            Self::ContentTypeMissing|Self::ContentTypeInvalid => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            Self::ContentTypeMissing | Self::ContentTypeInvalid => StatusCode::UNSUPPORTED_MEDIA_TYPE,
             Self::BytesRejection(_) => StatusCode::PAYLOAD_TOO_LARGE,
             Self::CiboriumIOError(err) => match err {
                 // CBOR can be parsed, but the result does not align with the entity
                 ciborium::de::Error::Semantic(_, _) => StatusCode::UNPROCESSABLE_ENTITY,
                 // All other errors are client errors (syntax, I/O)
                 _ => StatusCode::BAD_REQUEST,
-            }
+            },
         }
     }
 }
