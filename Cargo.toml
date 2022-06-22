@@ -19,7 +19,7 @@ tracing-opentelemetry = "0.17.1"
 tokio = { version = "1", features = ["full"] }
 axum = "0.5.4"
 tower = { version = "0.4.11", features = ["limit", "load-shed", "timeout"] }
-tower-http = { version = "0.2.2", features = ["trace", "compression-full", "auth"] }
+tower-http = { version = "0.3.4", features = ["trace", "compression-full", "auth"] }
 hyper = "0.14.17"
 
 # Database
