@@ -24,7 +24,7 @@ hyper = "0.14.17"
 
 # Database
 tokio-postgres = "0.7.5"
-bb8 = "0.7.1"
+bb8 = "0.8.0"
 bb8-postgres = "0.7.0"
 
 ## Functionality
