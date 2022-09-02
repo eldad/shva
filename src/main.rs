@@ -70,7 +70,7 @@ const DEFAULT_MAX_CONCURRENT_CONNECTIONS: usize = 3;
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
-#[openapi(handlers(http_methods::liveness))]
+#[openapi(paths(http_methods::liveness))]
 struct ApiDoc;
 
 async fn handle_error(method: Method, uri: Uri, error: BoxError) -> impl IntoResponse {
