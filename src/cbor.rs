@@ -3,11 +3,12 @@ use std::ops::{Deref, DerefMut};
 use async_trait::async_trait;
 use axum::{
     body::{Bytes, HttpBody},
-    extract::{FromRequest, RequestParts},
+    extract::FromRequest,
     http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     BoxError,
 };
+use http::{HeaderMap, Request};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::error;
@@ -41,9 +42,8 @@ impl<T> From<T> for Cbor<T> {
     }
 }
 
-fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejection> {
-    let mime = req
-        .headers()
+fn assert_cbor_content_type(headers: &HeaderMap<HeaderValue>) -> Result<(), CborRejection> {
+    let mime = headers
         .get(header::CONTENT_TYPE)
         .ok_or(CborRejection::ContentTypeMissing)?
         .to_str()
@@ -58,35 +58,23 @@ fn assert_cbor_content_type<B>(req: &RequestParts<B>) -> Result<(), CborRejectio
     }
 }
 
-impl<T> Cbor<T>
-where
-    T: DeserializeOwned,
-{
-    async fn try_from_request<B>(req: &mut RequestParts<B>) -> Result<Self, CborRejection>
-    where
-        B: HttpBody + Send,
-        B::Data: Send,
-        B::Error: Into<BoxError>,
-    {
-        assert_cbor_content_type(req)?;
-        let bytes = Bytes::from_request(req).await?;
-        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
-        Ok(Cbor(value))
-    }
-}
-
 #[async_trait]
-impl<B, T> FromRequest<B> for Cbor<T>
+impl<S, B, T> FromRequest<S, B> for Cbor<T>
 where
     T: DeserializeOwned,
-    B: HttpBody + Send,
+    B: HttpBody + Send + 'static,
     B::Data: Send,
     B::Error: Into<BoxError>,
+    S: Send + Sync,
 {
     type Rejection = CborRejection;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let response = Self::try_from_request(req).await;
+    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        assert_cbor_content_type(req.headers())?;
+
+        let bytes = Bytes::from_request(req, state).await?;
+        let value: T = ciborium::de::from_reader(bytes.as_ref())?;
+        let response = Ok(Cbor(value));
 
         if let Err(err) = &response {
             error!(error = %err, "error extracting cbor data")
