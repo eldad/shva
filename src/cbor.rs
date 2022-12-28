@@ -3,12 +3,12 @@ use std::ops::{Deref, DerefMut};
 use async_trait::async_trait;
 use axum::{
     body::{Bytes, HttpBody},
-    extract::{FromRequest},
+    extract::FromRequest,
     http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     BoxError,
 };
-use http::{Request, HeaderMap};
+use http::{HeaderMap, Request};
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::error;
