@@ -28,7 +28,7 @@ use tracing_subscriber::{fmt, fmt::format::FmtSpan, prelude::*, Registry};
 pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
     opentelemetry::global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
 
-    let jaeger_tracer = opentelemetry_jaeger::new_pipeline()
+    let jaeger_tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_service_name(service_name)
         .install_simple()?;
 
