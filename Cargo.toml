@@ -11,7 +11,7 @@ toml = "0.5.8"
 anyhow = "1.0.53"
 tracing = { version = "0.1.30", features = ["attributes"] }
 tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
-opentelemetry = "0.17.0"
+opentelemetry = "0.18.0"
 opentelemetry-jaeger = "0.16.0"
 tracing-opentelemetry = "0.17.1"
 
