@@ -73,7 +73,7 @@ pub fn verify_migration_versioning() -> anyhow::Result<()> {
             if last + 1 == version - 1 {
                 gaps.push(format!("Missing V{}", last + 1));
             } else if last + 1 != version {
-                gaps.push(format!("Gap V{}->V{}", last, version));
+                gaps.push(format!("Gap V{last}->V{version}"));
             }
         }
         (gaps, Some(version))
@@ -120,7 +120,7 @@ pub(crate) async fn refinery_migrate(postgres_connection_string: &str, dryrun: b
         let applied_on = applied_migrations
             .remove(migration.name())
             .flatten()
-            .map(|applied_on| format!("{}", applied_on))
+            .map(|applied_on| format!("{applied_on}"))
             .unwrap_or_else(|| String::from("-"));
 
         println!(
