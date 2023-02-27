@@ -57,8 +57,8 @@ use tower::{
     ServiceBuilder,
 };
 use tower_http::{
-    auth::RequireAuthorizationLayer, classify::StatusInRangeAsFailures, compression::CompressionLayer,
-    trace::TraceLayer,
+    classify::StatusInRangeAsFailures, compression::CompressionLayer, trace::TraceLayer,
+    validate_request::ValidateRequestHeaderLayer,
 };
 use tracing::{debug, error, event, info, Level};
 
@@ -96,7 +96,7 @@ async fn service(config: Config) -> anyhow::Result<()> {
             .unwrap_or(DEFAULT_MAX_CONCURRENT_CONNECTIONS),
     ));
 
-    let auth_layer = RequireAuthorizationLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
+    let auth_layer = ValidateRequestHeaderLayer::custom(apikey_auth::ApiKeyAuth::from_apikeys(config.apikeys));
 
     let monitoring = Router::new()
         .route("/liveness", get(http_methods::liveness))

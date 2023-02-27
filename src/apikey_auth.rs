@@ -31,7 +31,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::Request;
-use tower_http::auth::AuthorizeRequest;
+use tower_http::validate_request::ValidateRequest;
 
 #[derive(Clone)]
 pub struct ApiKeyAuth {
@@ -52,10 +52,10 @@ impl ApiKeyAuth {
 #[derive(Debug, Clone)]
 pub struct UserId(pub String);
 
-impl<B> AuthorizeRequest<B> for ApiKeyAuth {
+impl<B> ValidateRequest<B> for ApiKeyAuth {
     type ResponseBody = BoxBody;
 
-    fn authorize(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
+    fn validate(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
         let user_id = request
             .headers()
             .get(APIKEY_HEADER)
