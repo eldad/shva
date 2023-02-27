@@ -1,4 +1,7 @@
 # shva
+
+[![Continuous integration](https://github.com/eldad/shva/actions/workflows/rust.yml/badge.svg)](https://github.com/eldad/shva/actions/workflows/rust.yml)
+
 Learning experiment with Axum.
 
 ## Why `Shva`?
