@@ -13,7 +13,7 @@ tracing = { version = "0.1.30", features = ["attributes"] }
 tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
 opentelemetry = "0.20.0"
 opentelemetry-jaeger = "0.19.0"
-tracing-opentelemetry = "0.21.0"
+tracing-opentelemetry = "0.22.0"
 
 # Tokio to Axum and all that's in between.
 tokio = { version = "1", features = ["full"] }
