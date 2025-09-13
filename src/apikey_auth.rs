@@ -40,9 +40,6 @@ pub struct ApiKeyAuth {
 
 const APIKEY_HEADER: &str = "x-auth-api-key";
 
-#[derive(Debug)]
-struct ApiKeyAuthUserId(String);
-
 impl ApiKeyAuth {
     pub fn from_apikeys(apikeys: HashMap<String, String>) -> Self {
         Self { apikeys }

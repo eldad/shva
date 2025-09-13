@@ -19,7 +19,6 @@ use tracing::error;
 /// Request must have the `Content-Type` header set to `application/cbor`.
 ///
 /// Uses the [`ciborium` crate](https://crates.io/crates/ciborium).
-
 pub struct Cbor<T>(pub T);
 
 impl<T> Deref for Cbor<T> {
