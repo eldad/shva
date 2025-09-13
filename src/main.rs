@@ -109,8 +109,8 @@ async fn service(config: Config) -> anyhow::Result<()> {
         .route("/random-error", get(http_methods::random_error))
         .route("/query/short", get(http_methods::simulate_query_short))
         .route("/query/long", get(http_methods::simulate_query_long))
-        .route("/cbor-message/:id", get(http_methods::cbor_message))
-        .route("/cbor-ping/:id", post(http_methods::cbor_ping))
+        .route("/cbor-message/{id}", get(http_methods::cbor_message))
+        .route("/cbor-ping/{id}", post(http_methods::cbor_ping))
         .layer(middleware::from_fn(appmetrics::auth_snooper))
         .layer(auth_layer)
         .layer(
@@ -139,8 +139,8 @@ async fn service(config: Config) -> anyhow::Result<()> {
     let bind_address = &config.service.bind_address;
 
     info!("Binding service to {}", bind_address);
-    axum::Server::bind(&bind_address.parse()?)
-        .serve(app.into_make_service())
+    let listener = tokio::net::TcpListener::bind(bind_address).await.unwrap();
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal::shutdown_signal())
         .await?;
 

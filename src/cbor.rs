@@ -1,14 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-use async_trait::async_trait;
 use axum::{
-    body::{Bytes, HttpBody},
-    extract::FromRequest,
+    body::Bytes,
+    extract::{FromRequest, Request},
     http::{header, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
-    BoxError,
 };
-use http::{HeaderMap, Request};
+use http::HeaderMap;
 use serde::{de::DeserializeOwned, Serialize};
 use thiserror::Error;
 use tracing::error;
@@ -57,18 +55,14 @@ fn assert_cbor_content_type(headers: &HeaderMap<HeaderValue>) -> Result<(), Cbor
     }
 }
 
-#[async_trait]
-impl<S, B, T> FromRequest<S, B> for Cbor<T>
+impl<S, T> FromRequest<S> for Cbor<T>
 where
     T: DeserializeOwned,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
     S: Send + Sync,
 {
     type Rejection = CborRejection;
 
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         assert_cbor_content_type(req.headers())?;
 
         let bytes = Bytes::from_request(req, state).await?;

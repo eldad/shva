@@ -26,7 +26,6 @@
 use std::collections::HashMap;
 
 use axum::{
-    body::BoxBody,
     http::{Response, StatusCode},
     response::IntoResponse,
 };
@@ -50,7 +49,7 @@ impl ApiKeyAuth {
 pub struct UserId(pub String);
 
 impl<B> ValidateRequest<B> for ApiKeyAuth {
-    type ResponseBody = BoxBody;
+    type ResponseBody = axum::body::Body;
 
     fn validate(&mut self, request: &mut Request<B>) -> Result<(), Response<Self::ResponseBody>> {
         let user_id = request

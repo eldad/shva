@@ -26,8 +26,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Extension, MatchedPath},
-    http::Request,
+    extract::{Extension, MatchedPath, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -48,7 +47,7 @@ pub(crate) fn install_prometheus() -> Result<PrometheusHandle, metrics_exporter_
         .install_recorder()
 }
 
-pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+pub async fn track_latency(req: Request, next: Next) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {
         Some(path) => path.as_str().to_owned(),
         None => "*".into(),
@@ -76,7 +75,7 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
     response
 }
 
-pub async fn auth_snooper<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+pub async fn auth_snooper(req: Request, next: Next) -> impl IntoResponse {
     let maybe_user_id = req.extensions().get::<UserId>().cloned();
 
     let mut response = next.run(req).await;
