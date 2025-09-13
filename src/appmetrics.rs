@@ -26,8 +26,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Extension, MatchedPath},
-    http::Request,
+    extract::{Extension, MatchedPath, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -48,7 +47,7 @@ pub(crate) fn install_prometheus() -> Result<PrometheusHandle, metrics_exporter_
         .install_recorder()
 }
 
-pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+pub async fn track_latency(req: Request, next: Next) -> impl IntoResponse {
     let path = match req.extensions().get::<MatchedPath>() {
         Some(path) => path.as_str().to_owned(),
         None => "*".into(),
@@ -71,12 +70,12 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
 
     let labels = [("method", method), ("path", path), ("code", code), ("userid", user_id)];
 
-    metrics::histogram!(METRIC_HTTP_REQUEST_DURATION, duration, &labels);
+    metrics::histogram!(METRIC_HTTP_REQUEST_DURATION, &labels).record(duration);
 
     response
 }
 
-pub async fn auth_snooper<B>(req: Request<B>, next: Next<B>) -> impl IntoResponse {
+pub async fn auth_snooper(req: Request, next: Next) -> impl IntoResponse {
     let maybe_user_id = req.extensions().get::<UserId>().cloned();
 
     let mut response = next.run(req).await;
@@ -90,10 +89,7 @@ pub async fn auth_snooper<B>(req: Request<B>, next: Next<B>) -> impl IntoRespons
 
 fn update_global_concurrency_metric_gauge(semaphore: Arc<Semaphore>) {
     let global_concurrency_available_permits = semaphore.available_permits();
-    metrics::gauge!(
-        "global_concurrency_available_permits",
-        global_concurrency_available_permits as f64
-    );
+    metrics::gauge!("global_concurrency_available_permits").increment(global_concurrency_available_permits as f64);
 }
 
 pub async fn scrape(

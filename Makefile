@@ -6,7 +6,7 @@ SERVICE_BASE_URL := "localhost:8042"
 CURL := curl -sS -H 'x-auth-api-key:apikey1' --compressed -w "%{stderr}\nstatus=%{http_code} %{redirect_url} size=%{size_download} time=%{time_total} content-type=\"%{content_type}\"\n"
 
 infra:
-	docker-compose up -d
+	docker compose up -d
 
 run: infra
 	RUST_LOG=info cargo run

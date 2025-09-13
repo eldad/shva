@@ -6,35 +6,39 @@ authors = ["Eldad Zack <eldad@fogrefinery.com>"]
 
 [dependencies]
 # Infra
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.8.0"
-anyhow = "1.0.53"
-tracing = { version = "0.1.30", features = ["attributes"] }
-tracing-subscriber = { version = "0.3.8", features = ["env-filter"] }
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+anyhow = "1"
+tracing = { version = "0.1", features = ["attributes"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 opentelemetry = "0.20.0"
 opentelemetry-jaeger = "0.19.0"
 tracing-opentelemetry = "0.21.0"
 
 # Tokio to Axum and all that's in between.
 tokio = { version = "1", features = ["full"] }
-axum = "0.6.1"
-tower = { version = "0.4.11", features = ["limit", "load-shed", "timeout"] }
-tower-http = { version = "0.4.0", features = ["trace", "compression-full", "validate-request"] }
-hyper = "0.14.17"
+axum = "0.8"
+tower = { version = "0.5", features = ["limit", "load-shed", "timeout"] }
+tower-http = { version = "0.6", features = [
+  "trace",
+  "compression-full",
+  "validate-request",
+] }
+hyper = "1"
 
 # Database
-tokio-postgres = "0.7.5"
-bb8 = "0.8.0"
-bb8-postgres = "0.8.1"
+tokio-postgres = "0.7"
+bb8 = "0.9"
+bb8-postgres = "0.9"
 
 ## Functionality
-rand = "0.8.5"
-metrics = "0.21.0"
-metrics-exporter-prometheus = "0.12.0"
-utoipa = "4.1.0"
-refinery = { version = "0.8.4", features = ["tokio-postgres"] }
+rand = "0.9"
+metrics = "0.24"
+metrics-exporter-prometheus = "0.17"
+utoipa = "5"
+refinery = { version = "0.8", features = ["tokio-postgres"] }
 ciborium = "0.2.0"
 async-trait = "0.1.53"
-mime = "0.3.16"
-thiserror = "1.0.31"
-http = "0.2.8"
+mime = "0.3"
+thiserror = "2"
+http = "1"
