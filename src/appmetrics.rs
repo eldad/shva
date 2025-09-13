@@ -71,7 +71,7 @@ pub async fn track_latency<B>(req: Request<B>, next: Next<B>) -> impl IntoRespon
 
     let labels = [("method", method), ("path", path), ("code", code), ("userid", user_id)];
 
-    metrics::histogram!(METRIC_HTTP_REQUEST_DURATION, duration, &labels);
+    metrics::histogram!(METRIC_HTTP_REQUEST_DURATION, &labels).record(duration);
 
     response
 }
@@ -90,10 +90,7 @@ pub async fn auth_snooper<B>(req: Request<B>, next: Next<B>) -> impl IntoRespons
 
 fn update_global_concurrency_metric_gauge(semaphore: Arc<Semaphore>) {
     let global_concurrency_available_permits = semaphore.available_permits();
-    metrics::gauge!(
-        "global_concurrency_available_permits",
-        global_concurrency_available_permits as f64
-    );
+    metrics::gauge!("global_concurrency_available_permits").increment(global_concurrency_available_permits as f64);
 }
 
 pub async fn scrape(

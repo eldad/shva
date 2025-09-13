@@ -33,8 +33,8 @@ bb8-postgres = "0.8"
 
 ## Functionality
 rand = "0.9"
-metrics = "0.21.0"
-metrics-exporter-prometheus = "0.12.0"
+metrics = "0.24"
+metrics-exporter-prometheus = "0.17"
 utoipa = "4"
 refinery = { version = "0.8", features = ["tokio-postgres"] }
 ciborium = "0.2.0"
