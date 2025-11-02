@@ -1,6 +1,6 @@
 [package]
 name = "shva"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Eldad Zack <eldad@fogrefinery.com>"]
 
@@ -36,7 +36,7 @@ rand = "0.9"
 metrics = "0.24"
 metrics-exporter-prometheus = "0.17"
 utoipa = "5"
-refinery = { version = "0.8", features = ["tokio-postgres"] }
+refinery = { version = "0.9", features = ["tokio-postgres"] }
 ciborium = "0.2.0"
 async-trait = "0.1.53"
 mime = "0.3"
