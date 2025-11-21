@@ -7,7 +7,7 @@ jobs:
     name: Lint, Check, Clippy, Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - run: rustup component add rustfmt clippy
 
