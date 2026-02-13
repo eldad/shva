@@ -23,16 +23,23 @@
  *
  */
 
+use opentelemetry::trace::TracerProvider;
+use opentelemetry_sdk::trace::SdkTracerProvider;
 use tracing_subscriber::{fmt, fmt::format::FmtSpan, prelude::*, Registry};
 
-pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
-    opentelemetry::global::set_text_map_propagator(opentelemetry_jaeger::Propagator::new());
+pub fn setup_tracing(service_name: &str) -> anyhow::Result<SdkTracerProvider> {
+    let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_http()
+        .build()?;
 
-    let jaeger_tracer = opentelemetry_jaeger::new_agent_pipeline()
-        .with_service_name(service_name)
-        .install_simple()?;
+    let tracer_provider = SdkTracerProvider::builder()
+        .with_batch_exporter(otlp_exporter)
+        .build();
 
-    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(jaeger_tracer);
+    let tracer = tracer_provider.tracer(service_name.to_owned());
+    opentelemetry::global::set_tracer_provider(tracer_provider.clone());
+
+    let telemetry_layer = tracing_opentelemetry::layer().with_tracer(tracer);
 
     let log_fmt_layer = fmt::layer().with_span_events(FmtSpan::CLOSE);
 
@@ -45,7 +52,7 @@ pub fn setup_tracing(service_name: &str) -> anyhow::Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)?;
 
-    Ok(())
+    Ok(tracer_provider)
 }
 
 pub fn setup_basic_logging() -> anyhow::Result<()> {

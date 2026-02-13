@@ -161,7 +161,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // Invoked without a command: run the service
-    crate::apptracing::setup_tracing(SERVICE_NAME)?;
+    let tracer_provider = crate::apptracing::setup_tracing(SERVICE_NAME)?;
 
     debug!("config = {:#?}", config);
 
@@ -172,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
         Err(e) => error!("Main service loop error: {}", e),
     }
 
-    opentelemetry::global::shutdown_tracer_provider();
+    let _ = tracer_provider.shutdown();
     info!("shutdown complete");
 
     result

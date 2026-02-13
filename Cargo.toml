@@ -11,9 +11,10 @@ toml = "1.0"
 anyhow = "1"
 tracing = { version = "0.1", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-opentelemetry = "0.20.0"
-opentelemetry-jaeger = "0.19.0"
-tracing-opentelemetry = "0.21.0"
+opentelemetry = "0.31"
+opentelemetry_sdk = "0.31"
+opentelemetry-otlp = { version = "0.31", features = ["trace"] }
+tracing-opentelemetry = "0.32"
 
 # Tokio to Axum and all that's in between.
 tokio = { version = "1", features = ["full"] }
@@ -34,7 +35,7 @@ bb8-postgres = "0.9"
 ## Functionality
 rand = "0.10"
 metrics = "0.24"
-metrics-exporter-prometheus = "0.17"
+metrics-exporter-prometheus = "0.18"
 utoipa = "5"
 refinery = { version = "0.9", features = ["tokio-postgres"] }
 ciborium = "0.2.0"
