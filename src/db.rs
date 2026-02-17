@@ -28,7 +28,7 @@ use std::time::Duration;
 use bb8::Pool;
 use bb8_postgres::PostgresConnectionManager;
 use tokio_postgres::NoTls;
-use tracing::{event, info, instrument, Level};
+use tracing::{Level, event, info, instrument};
 
 use crate::config::DatabaseConfig;
 

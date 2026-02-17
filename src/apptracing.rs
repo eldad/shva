@@ -25,16 +25,12 @@
 
 use opentelemetry::trace::TracerProvider;
 use opentelemetry_sdk::trace::SdkTracerProvider;
-use tracing_subscriber::{fmt, fmt::format::FmtSpan, prelude::*, Registry};
+use tracing_subscriber::{Registry, fmt, fmt::format::FmtSpan, prelude::*};
 
 pub fn setup_tracing(service_name: &str) -> anyhow::Result<SdkTracerProvider> {
-    let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_http()
-        .build()?;
+    let otlp_exporter = opentelemetry_otlp::SpanExporter::builder().with_http().build()?;
 
-    let tracer_provider = SdkTracerProvider::builder()
-        .with_batch_exporter(otlp_exporter)
-        .build();
+    let tracer_provider = SdkTracerProvider::builder().with_batch_exporter(otlp_exporter).build();
 
     let tracer = tracer_provider.tracer(service_name.to_owned());
     opentelemetry::global::set_tracer_provider(tracer_provider.clone());
