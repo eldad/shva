@@ -3,11 +3,11 @@ use std::ops::{Deref, DerefMut};
 use axum::{
     body::Bytes,
     extract::{FromRequest, Request},
-    http::{header, HeaderValue, StatusCode},
+    http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use http::HeaderMap;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 use tracing::error;
 
