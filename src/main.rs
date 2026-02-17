@@ -41,26 +41,26 @@ use std::{sync::Arc, time::Duration};
 
 use anyhow::anyhow;
 use axum::{
+    BoxError, Router,
     error_handling::HandleErrorLayer,
     extract::Extension,
     http::{Method, StatusCode, Uri},
     middleware,
     response::IntoResponse,
     routing::{get, post},
-    BoxError, Router,
 };
 use tokio::sync::Semaphore;
 use tower::{
-    limit::GlobalConcurrencyLimitLayer,
-    load_shed::{error::Overloaded, LoadShedLayer},
-    timeout::{error::Elapsed, TimeoutLayer},
     ServiceBuilder,
+    limit::GlobalConcurrencyLimitLayer,
+    load_shed::{LoadShedLayer, error::Overloaded},
+    timeout::{TimeoutLayer, error::Elapsed},
 };
 use tower_http::{
     classify::StatusInRangeAsFailures, compression::CompressionLayer, trace::TraceLayer,
     validate_request::ValidateRequestHeaderLayer,
 };
-use tracing::{debug, error, event, info, Level};
+use tracing::{Level, debug, error, event, info};
 
 use crate::config::Config;
 

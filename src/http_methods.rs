@@ -28,7 +28,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{event, instrument, Level};
+use tracing::{Level, event, instrument};
 
 use crate::{apperror::AppError, cbor::Cbor, db::ConnectionPool};
 
