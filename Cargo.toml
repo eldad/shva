@@ -7,7 +7,7 @@ authors = ["Eldad Zack <eldad@fogrefinery.com>"]
 [dependencies]
 # Infra
 serde = { version = "1", features = ["derive"] }
-toml = "1.0"
+toml = "1.1"
 anyhow = "1"
 tracing = { version = "0.1", features = ["attributes"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
